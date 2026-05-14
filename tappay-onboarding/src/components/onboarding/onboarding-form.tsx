@@ -129,10 +129,8 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
           const urls: string[] = []
 
           for (const file of fileArray) {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('未登入')
-
-            const filePath = `${user.id}/${Date.now()}_${file.name}`
+            const partnerAccount = data.partner_account ?? `anon_${Date.now()}`
+            const filePath = `${partnerAccount}/${Date.now()}_${file.name}`
             const { error } = await supabase.storage
               .from('merchant-documents')
               .upload(filePath, file, { upsert: true })
@@ -162,7 +160,8 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
       }
 
       toast.success('申請已成功提交！TapPay 將於 7-10 個工作天內完成審核。')
-      router.push('/onboarding/status')
+      const partnerAccount = data.partner_account
+      router.push(`/onboarding/status?account=${encodeURIComponent(partnerAccount)}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '提交失敗，請稍後再試'
       toast.error(message)

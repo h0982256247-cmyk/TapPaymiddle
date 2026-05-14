@@ -1,33 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await request.json()
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    // 使用 service role key 呼叫 Edge Functions（不需要使用者登入）
+    const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-    // Get session for Edge Function auth
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'No session' }, { status: 401 })
-    }
-
-    // 1. Call create-partner-account Edge Function
+    // 1. create-partner-account
     const createAccountRes = await fetch(
       `${SUPABASE_URL}/functions/v1/create-partner-account`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({
           partner_account: body.partner_account,
@@ -47,14 +34,14 @@ export async function POST(request: NextRequest) {
 
     const { partner_key, merchant_id } = createAccountData
 
-    // 2. Call basic Edge Function
+    // 2. basic
     const basicRes = await fetch(
       `${SUPABASE_URL}/functions/v1/basic`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({ ...body, partner_key, merchant_id }),
       }
@@ -65,14 +52,14 @@ export async function POST(request: NextRequest) {
       throw new Error(basicData.error ?? 'basic API 失敗')
     }
 
-    // 3. Call additional Edge Function
+    // 3. additional
     const additionalRes = await fetch(
       `${SUPABASE_URL}/functions/v1/additional`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({
           partner_account: body.partner_account,
@@ -92,7 +79,7 @@ export async function POST(request: NextRequest) {
       throw new Error(additionalData.error ?? 'additional API 失敗')
     }
 
-    // 4. Call qualification-file Edge Function if documents
+    // 4. qualification-file（有上傳文件才呼叫）
     if (body.document_paths && Object.keys(body.document_paths).length > 0) {
       const fileRes = await fetch(
         `${SUPABASE_URL}/functions/v1/qualification-file`,
@@ -100,7 +87,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
           },
           body: JSON.stringify({
             partner_account: body.partner_account,

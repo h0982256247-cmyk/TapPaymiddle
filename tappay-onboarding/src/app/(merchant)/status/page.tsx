@@ -9,48 +9,25 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const isPreview = process.env.PREVIEW_MODE === 'true'
-
 type MerchantWithPayments = Merchant & { merchant_payment_methods: MerchantPaymentMethod[] }
 
-const PREVIEW_MERCHANT: MerchantWithPayments = {
-  id: 'preview',
-  user_id: 'preview',
-  partner_account: 'demo_merchant',
-  merchant_type: 'E',
-  industry_code: 'NON_SPECIAL_INDUSTRY',
-  company_name: '示範股份有限公司',
-  company_name_english: 'Demo Corp.',
-  contact_email: 'demo@example.com',
-  status: 'UNDER_REVIEW',
-  partner_key: null,
-  tappay_status_code: 6,
-  tappay_opinion: null,
-  is_complete: true,
-  submitted_at: new Date().toISOString(),
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  merchant_payment_methods: [
-    { id: '1', merchant_id: 'preview', payment_method: 'ONLINE_CREDIT_CARD', payment_config: null, status: 'UNDER_REVIEW', merchant_id_ref: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: '2', merchant_id: 'preview', payment_method: 'ATM', payment_config: null, status: 'UNDER_REVIEW', merchant_id_ref: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  ],
-}
+export default async function StatusPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ account?: string }>
+}) {
+  const { account } = await searchParams
 
-export default async function StatusPage() {
-  if (isPreview) {
-    const merchant = PREVIEW_MERCHANT
-    const paymentMethods = merchant.merchant_payment_methods
-    return renderPage(merchant, paymentMethods)
+  if (!account) {
+    redirect('/onboarding')
   }
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const { data: merchant } = await supabase
     .from('merchants')
     .select('*, merchant_payment_methods(*)')
-    .eq('user_id', user.id)
+    .eq('partner_account', account)
     .order('created_at', { ascending: false })
     .limit(1)
     .single() as { data: MerchantWithPayments | null }
@@ -58,10 +35,7 @@ export default async function StatusPage() {
   if (!merchant) redirect('/onboarding')
 
   const paymentMethods = merchant.merchant_payment_methods ?? []
-  return renderPage(merchant, paymentMethods)
-}
 
-function renderPage(merchant: MerchantWithPayments, paymentMethods: MerchantPaymentMethod[]) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -125,11 +99,9 @@ function renderPage(merchant: MerchantWithPayments, paymentMethods: MerchantPaym
                     )}
                   </div>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    pm.status === 'APPROVED'
-                      ? 'bg-green-50 text-green-700'
-                      : pm.status === 'REJECTED'
-                      ? 'bg-red-50 text-red-700'
-                      : 'bg-gray-100 text-gray-600'
+                    pm.status === 'APPROVED' ? 'bg-green-50 text-green-700'
+                    : pm.status === 'REJECTED' ? 'bg-red-50 text-red-700'
+                    : 'bg-gray-100 text-gray-600'
                   }`}>
                     {pm.status === 'APPROVED' ? '已開通' : pm.status === 'REJECTED' ? '未通過' : '審核中'}
                   </span>
@@ -162,10 +134,9 @@ function renderPage(merchant: MerchantWithPayments, paymentMethods: MerchantPaym
           </div>
         </Card>
 
-        {/* Supplement action */}
         {merchant.status === 'PENDING_SUPPLEMENT' && (
           <Link
-            href="/onboarding/supplement"
+            href={`/onboarding/supplement?account=${merchant.partner_account}`}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
