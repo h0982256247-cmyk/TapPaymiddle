@@ -99,13 +99,18 @@ interface OnboardingFormProps {
   merchantId?: string
 }
 
+const DRAFT_STORAGE_KEY = 'tappay_draft_merchant_id'
+
 export function OnboardingForm({ initialData, initialStep = 1, merchantId }: OnboardingFormProps) {
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [currentMerchantId, setCurrentMerchantId] = useState(merchantId)
+  // 優先使用 prop 傳入的 merchantId，其次從 localStorage 恢復
+  const [currentMerchantId, setCurrentMerchantId] = useState<string | undefined>(
+    merchantId ?? (typeof window !== 'undefined' ? (localStorage.getItem(DRAFT_STORAGE_KEY) ?? undefined) : undefined)
+  )
   const router = useRouter()
   const supabase = createClient()
 
@@ -146,9 +151,10 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
 
       if (response.ok) {
         const result = await response.json()
-        // 若是第一次建立，記下新的 merchant_id
+        // 若是第一次建立，記下新的 merchant_id 並存入 localStorage
         if (result.merchant_id && !currentMerchantId) {
           setCurrentMerchantId(result.merchant_id)
+          localStorage.setItem(DRAFT_STORAGE_KEY, result.merchant_id)
         }
         if (showToast) toast.success('草稿已儲存')
       }
@@ -227,6 +233,8 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || '提交失敗')
 
+      // 送出成功後清除草稿紀錄
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
       toast.success('申請已成功提交！TapPay 將於 7-10 個工作天內完成審核。')
       router.push(`/onboarding/status?account=${encodeURIComponent(data.partner_account)}`)
     } catch (err: unknown) {

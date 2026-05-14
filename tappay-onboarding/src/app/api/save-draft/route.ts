@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         .from('merchant_drafts')
         .upsert({
           merchant_id,
-          user_id: 'anonymous',
+          user_id: null,
           draft_payload,
           current_step: current_step ?? 1,
           updated_at: new Date().toISOString(),
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         .from('merchant_drafts')
         .insert({
           merchant_id: merchant.id,
-          user_id: 'anonymous',
+          user_id: null,
           draft_payload,
           current_step: current_step ?? 1,
         })
