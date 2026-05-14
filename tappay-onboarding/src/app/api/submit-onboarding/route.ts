@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+    // Get session for Edge Function auth
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No session' }, { status: 401 })
+    }
+
+    // 1. Call create-partner-account Edge Function
+    const createAccountRes = await fetch(
+      `${SUPABASE_URL}/functions/v1/create-partner-account`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          partner_account: body.partner_account,
+          contact_email: body.contact_email,
+          company_name: body.company_info?.company_name ?? body.company_name,
+          vat_number: body.vat_number,
+          id_number: body.id_number,
+          merchant_id: body.merchant_id,
+        }),
+      }
+    )
+
+    const createAccountData = await createAccountRes.json()
+    if (!createAccountRes.ok || createAccountData.error) {
+      throw new Error(createAccountData.error ?? 'create-partner-account 失敗')
+    }
+
+    const { partner_key, merchant_id } = createAccountData
+
+    // 2. Call basic Edge Function
+    const basicRes = await fetch(
+      `${SUPABASE_URL}/functions/v1/basic`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ ...body, partner_key, merchant_id }),
+      }
+    )
+
+    const basicData = await basicRes.json()
+    if (!basicRes.ok || basicData.error) {
+      throw new Error(basicData.error ?? 'basic API 失敗')
+    }
+
+    // 3. Call additional Edge Function
+    const additionalRes = await fetch(
+      `${SUPABASE_URL}/functions/v1/additional`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          partner_account: body.partner_account,
+          partner_key,
+          merchant_id,
+          payment_methods: body.payment_methods,
+          online_credit_card_info: body.online_credit_card_info,
+          offline_credit_card_info: body.offline_credit_card_info,
+          cvscom_info: body.cvscom_info,
+          is_complete: !body.document_paths || Object.keys(body.document_paths).length === 0,
+        }),
+      }
+    )
+
+    const additionalData = await additionalRes.json()
+    if (!additionalRes.ok || additionalData.error) {
+      throw new Error(additionalData.error ?? 'additional API 失敗')
+    }
+
+    // 4. Call qualification-file Edge Function if documents
+    if (body.document_paths && Object.keys(body.document_paths).length > 0) {
+      const fileRes = await fetch(
+        `${SUPABASE_URL}/functions/v1/qualification-file`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            partner_account: body.partner_account,
+            partner_key,
+            merchant_id,
+            document_paths: body.document_paths,
+          }),
+        }
+      )
+
+      const fileData = await fileRes.json()
+      if (!fileRes.ok || fileData.error) {
+        throw new Error(fileData.error ?? 'qualification-file API 失敗')
+      }
+    }
+
+    return NextResponse.json({ success: true, merchant_id })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal error'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
