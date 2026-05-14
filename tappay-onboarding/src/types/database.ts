@@ -173,14 +173,14 @@ export type Database = {
         Row: {
           id: string
           merchant_id: string
-          user_id: string
+          user_id: string | null
           draft_payload: Json
           current_step: number
           updated_at: string
         }
         Insert: {
           merchant_id: string
-          user_id: string
+          user_id?: string | null
           draft_payload: Json
           current_step?: number
           updated_at?: string

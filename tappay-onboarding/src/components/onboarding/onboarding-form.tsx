@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { StepIndicator } from './step-indicator'
@@ -20,12 +20,23 @@ import {
 import type { OnboardingFormData } from '@/types/merchant'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { ArrowLeft, ArrowRight, Loader2, Save, Send, AlertCircle, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Save, Send, AlertCircle, X, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const STEP_SCHEMAS = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema, null]
 const STEP_COMPONENTS = [Step1, Step2, Step3, Step4, Step5, Step6]
 const TOTAL_STEPS = 6
+
+// localStorage 鍵值
+const LS_FORM_DATA = 'tappay_form_data'
+const LS_FORM_STEP = 'tappay_form_step'
+
+const DEFAULT_VALUES: Partial<OnboardingFormData> = {
+  industry_code: 'NON_SPECIAL_INDUSTRY',
+  payment_methods: [],
+  company_info: { is_chain_store: false },
+  merchant_owner_info: { is_foreigner: false },
+}
 
 // 欄位名稱對照表（顯示中文）
 const FIELD_LABELS: Record<string, string> = {
@@ -99,70 +110,92 @@ interface OnboardingFormProps {
   merchantId?: string
 }
 
-const DRAFT_STORAGE_KEY = 'tappay_draft_merchant_id'
-
 export function OnboardingForm({ initialData, initialStep = 1, merchantId }: OnboardingFormProps) {
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
-  const [savingDraft, setSavingDraft] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
-  // 優先使用 prop 傳入的 merchantId，其次從 localStorage 恢復
-  const [currentMerchantId, setCurrentMerchantId] = useState<string | undefined>(
-    merchantId ?? (typeof window !== 'undefined' ? (localStorage.getItem(DRAFT_STORAGE_KEY) ?? undefined) : undefined)
-  )
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [hasSavedDraft, setHasSavedDraft] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const methods = useForm<OnboardingFormData>({
-    defaultValues: {
-      industry_code: 'NON_SPECIAL_INDUSTRY',
-      payment_methods: [],
-      company_info: { is_chain_store: false },
-      merchant_owner_info: { is_foreigner: false },
-      ...initialData,
-    },
+    defaultValues: { ...DEFAULT_VALUES, ...initialData },
     mode: 'onTouched',
   })
 
-  const { handleSubmit, trigger, getValues } = methods
+  const { handleSubmit, trigger, getValues, reset } = methods
 
-  // Auto-save draft every 30 seconds
+  // ── 頁面載入：從 localStorage 恢復草稿 ──
   useEffect(() => {
-    const interval = setInterval(() => {
-      saveDraft(false)
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [currentStep, currentMerchantId])
+    // 若有 prop 傳入的 initialData，優先使用（補件流程）
+    if (initialData && Object.keys(initialData).length > 0) return
 
-  async function saveDraft(showToast = true) {
-    setSavingDraft(true)
     try {
-      const data = getValues()
-      const response = await fetch('/api/save-draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          merchant_id: currentMerchantId,
-          draft_payload: data,
-          current_step: currentStep,
-        }),
-      })
+      const savedData = localStorage.getItem(LS_FORM_DATA)
+      const savedStep = localStorage.getItem(LS_FORM_STEP)
 
-      if (response.ok) {
-        const result = await response.json()
-        // 若是第一次建立，記下新的 merchant_id 並存入 localStorage
-        if (result.merchant_id && !currentMerchantId) {
-          setCurrentMerchantId(result.merchant_id)
-          localStorage.setItem(DRAFT_STORAGE_KEY, result.merchant_id)
+      if (savedData) {
+        const parsed = JSON.parse(savedData) as Partial<OnboardingFormData>
+        reset({ ...DEFAULT_VALUES, ...parsed })
+        setHasSavedDraft(true)
+
+        if (savedStep) {
+          const step = parseInt(savedStep, 10)
+          if (step >= 1 && step <= TOTAL_STEPS) {
+            setCurrentStep(step)
+            // 標記已完成的步驟
+            setCompletedSteps(Array.from({ length: step - 1 }, (_, i) => i + 1))
+          }
         }
-        if (showToast) toast.success('草稿已儲存')
+
+        toast('找到上次的草稿', {
+          description: '已自動還原您之前填寫的資料',
+          duration: 4000,
+        })
       }
     } catch {
-      if (showToast) toast.error('儲存草稿失敗')
-    } finally {
-      setSavingDraft(false)
+      // localStorage 資料損毀時靜默忽略
     }
+  }, [])
+
+  // ── 自動暫存：每 30 秒存一次 localStorage ──
+  useEffect(() => {
+    autoSaveRef.current = setInterval(() => {
+      saveToLocalStorage(false)
+    }, 30000)
+    return () => {
+      if (autoSaveRef.current) clearInterval(autoSaveRef.current)
+    }
+  }, [currentStep])
+
+  // ── 儲存到 localStorage（不打 DB）──
+  function saveToLocalStorage(showToast = true) {
+    try {
+      const data = getValues()
+      localStorage.setItem(LS_FORM_DATA, JSON.stringify(data))
+      localStorage.setItem(LS_FORM_STEP, String(currentStep))
+      setHasSavedDraft(true)
+      if (showToast) toast.success('草稿已暫存到瀏覽器')
+    } catch {
+      if (showToast) toast.error('暫存失敗，請確認瀏覽器儲存空間')
+    }
+  }
+
+  // ── 清除所有草稿並重設表單 ──
+  function handleReset() {
+    localStorage.removeItem(LS_FORM_DATA)
+    localStorage.removeItem(LS_FORM_STEP)
+    reset({ ...DEFAULT_VALUES })
+    setCurrentStep(1)
+    setCompletedSteps([])
+    setValidationErrors([])
+    setHasSavedDraft(false)
+    setShowResetConfirm(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    toast.success('已重新填寫，所有資料已清除')
   }
 
   async function handleNext() {
@@ -173,17 +206,16 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
       const result = schema.safeParse(currentData)
 
       if (!result.success) {
-        // 觸發 inline 錯誤
         await trigger()
-        // 同時顯示浮動視窗
         const errors = extractZodErrors(result.error as Parameters<typeof extractZodErrors>[0])
         setValidationErrors(errors)
-        // 滾動到頁面頂部讓使用者看到
         window.scrollTo({ top: 0, behavior: 'smooth' })
         return
       }
     }
 
+    // 驗證通過：自動暫存當前進度
+    saveToLocalStorage(false)
     setValidationErrors([])
     setCompletedSteps((prev) => [...new Set([...prev, currentStep])])
     setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS))
@@ -226,15 +258,16 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         body: JSON.stringify({
           ...data,
           document_paths: documentUrls,
-          merchant_id: currentMerchantId,
+          merchant_id: merchantId, // 補件流程才會有值
         }),
       })
 
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || '提交失敗')
 
-      // 送出成功後清除草稿紀錄
-      localStorage.removeItem(DRAFT_STORAGE_KEY)
+      // 送出成功後清除草稿
+      localStorage.removeItem(LS_FORM_DATA)
+      localStorage.removeItem(LS_FORM_STEP)
       toast.success('申請已成功提交！TapPay 將於 7-10 個工作天內完成審核。')
       router.push(`/onboarding/status?account=${encodeURIComponent(data.partner_account)}`)
     } catch (err: unknown) {
@@ -259,17 +292,32 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
                 <h1 className="text-base font-semibold text-gray-900">TapPay 商戶進件申請</h1>
                 <p className="text-xs text-gray-400 mt-0.5">完成申請以啟用 TapPay 金流服務</p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => saveDraft(true)}
-                disabled={savingDraft}
-                className="text-gray-500 h-8 text-xs gap-1.5"
-              >
-                {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                儲存草稿
-              </Button>
+
+              <div className="flex items-center gap-2">
+                {/* 一鍵重新 */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowResetConfirm(true)}
+                  className="text-gray-400 hover:text-red-500 h-8 text-xs gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  重新填寫
+                </Button>
+
+                {/* 儲存草稿 */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => saveToLocalStorage(true)}
+                  className="text-gray-500 h-8 text-xs gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {hasSavedDraft ? '更新草稿' : '儲存草稿'}
+                </Button>
+              </div>
             </div>
             <StepIndicator currentStep={currentStep} completedSteps={completedSteps} />
           </div>
@@ -321,17 +369,14 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         </div>
       </div>
 
-      {/* 驗證錯誤浮動視窗 */}
+      {/* ── 驗證錯誤浮動視窗 ── */}
       {validationErrors.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          {/* 背景遮罩 */}
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setValidationErrors([])}
           />
-          {/* 視窗 */}
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
-            {/* 關閉按鈕 */}
             <button
               onClick={() => setValidationErrors([])}
               className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
@@ -339,7 +384,6 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
               <X className="w-4 h-4 text-gray-500" />
             </button>
 
-            {/* 標題 */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-red-500" />
@@ -350,7 +394,6 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
               </div>
             </div>
 
-            {/* 錯誤列表 */}
             <ul className="space-y-2 mb-5">
               {validationErrors.map((err, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
@@ -360,13 +403,52 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
               ))}
             </ul>
 
-            {/* 確認按鈕 */}
             <button
               onClick={() => setValidationErrors([])}
               className="w-full h-10 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
             >
               返回填寫
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 重新填寫確認視窗 ── */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setShowResetConfirm(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <RotateCcw className="w-5 h-5 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">確認重新填寫？</h3>
+                <p className="text-xs text-gray-400 mt-0.5">所有已填寫的資料將被清除</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+              包含暫存的草稿也會一併刪除，此操作無法復原。確定要從頭開始嗎？
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 h-10 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 h-10 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors"
+              >
+                確認重新填寫
+              </button>
+            </div>
           </div>
         </div>
       )}
