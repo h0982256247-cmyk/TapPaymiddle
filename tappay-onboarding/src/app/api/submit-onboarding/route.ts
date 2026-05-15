@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           partner_account: body.partner_account,
           contact_email: body.contact_email,
-          company_name: body.company_info?.company_name ?? body.company_name,
-          vat_number: body.vat_number,
-          id_number: body.id_number,
+          company_name: body.company_info?.company_name,
+          vat_number: body.register_info?.vat_number,
+          id_number: body.merchant_owner_info?.sub_merchant_owner_id,
           merchant_id: body.merchant_id,
         }),
       }

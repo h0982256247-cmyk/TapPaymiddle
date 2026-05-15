@@ -1,8 +1,6 @@
 'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Building2, User, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Step1Data } from '@/lib/schemas/onboarding'
@@ -15,12 +13,7 @@ const INDUSTRY_OPTIONS = [
 ]
 
 export function Step1() {
-  const {
-    register,
-    control,
-    watch,
-    formState: { errors },
-  } = useFormContext<Step1Data>()
+  const { control, watch } = useFormContext<Step1Data>()
 
   const merchantType = watch('merchant_type')
 
@@ -136,57 +129,6 @@ export function Step1() {
           <p className="text-xs text-red-500">{errors.merchant_type.message}</p>
         )}
       </div>
-
-      {/* Conditional fields based on merchant type */}
-      {merchantType === 'E' && (
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-gray-700">
-            統一編號 <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            placeholder="12345678"
-            maxLength={8}
-            className="h-10 rounded-xl max-w-xs"
-            {...register('vat_number')}
-          />
-          {errors.vat_number && (
-            <p className="text-xs text-red-500">{errors.vat_number.message}</p>
-          )}
-        </div>
-      )}
-
-      {merchantType === 'P' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">
-              身分證號碼 <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              placeholder="A123456789"
-              maxLength={10}
-              className="h-10 rounded-xl"
-              {...register('id_number')}
-            />
-            {errors.id_number && (
-              <p className="text-xs text-red-500">{errors.id_number.message}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">
-              對外營業名稱 <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              placeholder="王小明設計師"
-              className="h-10 rounded-xl"
-              {...register('company_name')}
-            />
-            {errors.company_name && (
-              <p className="text-xs text-red-500">{errors.company_name.message}</p>
-            )}
-            <p className="text-xs text-gray-400">持卡人對帳單顯示名稱，勿填寫個人姓名</p>
-          </div>
-        </div>
-      )}
 
       {/* Industry Code */}
       <div className="space-y-3">

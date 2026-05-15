@@ -18,26 +18,6 @@ export const step1Schema = z.object({
     'CRAM_SCHOOL',
     'MEDICAL_CLINIC',
   ]),
-  vat_number: z.string().optional(),
-  id_number: z.string().optional(),
-  company_name: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.merchant_type === 'E') {
-    if (!data.vat_number || data.vat_number.length !== 8) {
-      ctx.addIssue({ code: 'custom', path: ['vat_number'], message: '法人商家需填寫 8 碼統一編號' })
-    }
-    if (!data.vat_number || !/^\d{8}$/.test(data.vat_number)) {
-      ctx.addIssue({ code: 'custom', path: ['vat_number'], message: '統一編號須為 8 碼數字' })
-    }
-  }
-  if (data.merchant_type === 'P') {
-    if (!data.id_number || data.id_number.length !== 10) {
-      ctx.addIssue({ code: 'custom', path: ['id_number'], message: '自然人需填寫 10 碼身分證號' })
-    }
-    if (!data.company_name || data.company_name.trim().length === 0) {
-      ctx.addIssue({ code: 'custom', path: ['company_name'], message: '請填寫對外營業名稱' })
-    }
-  }
 })
 
 // ================================================
