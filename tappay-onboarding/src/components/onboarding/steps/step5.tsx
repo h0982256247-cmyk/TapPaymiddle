@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +10,187 @@ import { cn } from '@/lib/utils'
 import type { OnboardingFormData, PaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
 
+// ── MCC 代碼分類 ──────────────────────────────
+const MCC_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
+  {
+    label: '零售業',
+    options: [
+      { value: '5999', label: '5999　綜合零售' },
+      { value: '5411', label: '5411　超市 / 食品雜貨' },
+      { value: '5912', label: '5912　藥局 / 藥妝店' },
+      { value: '5691', label: '5691　服飾綜合' },
+      { value: '5621', label: '5621　女裝服飾' },
+      { value: '5611', label: '5611　男裝服飾' },
+      { value: '5661', label: '5661　鞋類' },
+      { value: '5941', label: '5941　運動用品' },
+      { value: '5045', label: '5045　電腦及周邊設備' },
+      { value: '5065', label: '5065　電子零件 / 3C' },
+      { value: '5722', label: '5722　家電' },
+      { value: '5712', label: '5712　家具 / 家居用品' },
+      { value: '5251', label: '5251　五金 / 工具' },
+      { value: '5261', label: '5261　花卉 / 園藝' },
+      { value: '5977', label: '5977　化妝品 / 美容用品' },
+      { value: '5947', label: '5947　禮品 / 精品店' },
+      { value: '5511', label: '5511　汽車銷售' },
+      { value: '5533', label: '5533　汽車零件' },
+      { value: '5571', label: '5571　機車' },
+      { value: '5815', label: '5815　數位內容下載（書籍、音樂）' },
+      { value: '5816', label: '5816　遊戲點數 / 虛寶' },
+      { value: '5734', label: '5734　電腦軟體零售' },
+    ],
+  },
+  {
+    label: '餐飲業',
+    options: [
+      { value: '5812', label: '5812　餐廳 / 飲食店' },
+      { value: '5814', label: '5814　速食店' },
+      { value: '5813', label: '5813　酒吧 / 夜店' },
+      { value: '5921', label: '5921　酒類零售' },
+    ],
+  },
+  {
+    label: '旅遊 / 住宿',
+    options: [
+      { value: '7011', label: '7011　飯店 / 旅館' },
+      { value: '7012', label: '7012　民宿' },
+      { value: '4511', label: '4511　航空公司' },
+      { value: '4722', label: '4722　旅行社' },
+      { value: '7512', label: '7512　租車服務' },
+      { value: '4131', label: '4131　客運巴士' },
+    ],
+  },
+  {
+    label: '娛樂 / 休閒',
+    options: [
+      { value: '7832', label: '7832　電影院' },
+      { value: '7993', label: '7993　遊樂場 / 電子遊戲' },
+      { value: '7999', label: '7999　休閒娛樂綜合' },
+      { value: '7922', label: '7922　表演票券' },
+      { value: '7941', label: '7941　職業運動' },
+    ],
+  },
+  {
+    label: '醫療 / 健康 / 美容',
+    options: [
+      { value: '8099', label: '8099　醫療服務綜合' },
+      { value: '8011', label: '8011　醫師診所' },
+      { value: '8021', label: '8021　牙科診所' },
+      { value: '7298', label: '7298　健康 / 美容 SPA' },
+      { value: '7230', label: '7230　美容院 / 理髮廳' },
+      { value: '5047', label: '5047　醫療器材' },
+    ],
+  },
+  {
+    label: '教育',
+    options: [
+      { value: '8299', label: '8299　補習班 / 教育服務' },
+      { value: '8241', label: '8241　函授課程 / 線上課程' },
+      { value: '8220', label: '8220　大學 / 高等教育' },
+      { value: '8211', label: '8211　中小學' },
+    ],
+  },
+  {
+    label: '服務業 / 專業服務',
+    options: [
+      { value: '7389', label: '7389　商業服務綜合' },
+      { value: '7372', label: '7372　軟體服務 / SaaS' },
+      { value: '7371', label: '7371　程式設計 / IT 服務' },
+      { value: '8742', label: '8742　管理顧問' },
+      { value: '8911', label: '8911　建築師 / 工程師' },
+      { value: '7349', label: '7349　清潔 / 維護服務' },
+      { value: '8999', label: '8999　其他專業服務' },
+    ],
+  },
+  {
+    label: '交通 / 汽車服務',
+    options: [
+      { value: '7521', label: '7521　停車場' },
+      { value: '7538', label: '7538　汽車修理廠' },
+      { value: '7542', label: '7542　洗車' },
+    ],
+  },
+  {
+    label: '電信 / 數位服務',
+    options: [
+      { value: '4814', label: '4814　電信服務' },
+      { value: '4816', label: '4816　電腦網路服務' },
+      { value: '4899', label: '4899　有線電視 / 串流' },
+    ],
+  },
+  {
+    label: '其他',
+    options: [
+      { value: '8398', label: '8398　慈善機構 / 非營利' },
+      { value: '6300', label: '6300　保險' },
+      { value: '9399', label: '9399　政府 / 公共服務' },
+    ],
+  },
+]
+
+const selectClass =
+  'h-10 w-full appearance-none rounded-xl border border-input bg-white pl-3 pr-8 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
+
+// 兩層 MCC 選單元件
+function MccSelect({
+  fieldName,
+  error,
+}: {
+  fieldName: 'online_credit_card_info.mcc_online' | 'offline_credit_card_info.mcc_offline'
+  error?: boolean
+}) {
+  const { register, setValue, watch } = useFormContext<OnboardingFormData>()
+  const currentValue = watch(fieldName)
+
+  // 從目前值反推初始分類
+  const initCategory = MCC_GROUPS.find((g) =>
+    g.options.some((o) => o.value === currentValue)
+  )?.label ?? ''
+
+  const [category, setCategory] = useState(initCategory)
+
+  const filteredOptions = MCC_GROUPS.find((g) => g.label === category)?.options ?? []
+
+  function handleCategoryChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setCategory(e.target.value)
+    setValue(fieldName, '', { shouldValidate: false })
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* 第一層：大分類 */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-gray-500">① 選擇產業大分類</p>
+        <select
+          className={selectClass}
+          value={category}
+          onChange={handleCategoryChange}
+        >
+          <option value="">請選擇大分類</option>
+          {MCC_GROUPS.map((g) => (
+            <option key={g.label} value={g.label}>{g.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* 第二層：對應 MCC code */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-gray-500">② 選擇對應業別 / MCC 代碼</p>
+        <select
+          className={cn(selectClass, error && 'border-red-300')}
+          disabled={!category}
+          {...register(fieldName)}
+        >
+          <option value="">{category ? '請選擇業別' : '請先選擇大分類'}</option>
+          {filteredOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
+}
+
+// ── 支付選項 ──────────────────────────────────
 const PAYMENT_OPTIONS: { value: PaymentMethod; icon: React.ReactNode; desc: string }[] = [
   {
     value: 'ONLINE_CREDIT_CARD',
@@ -118,9 +300,14 @@ export function Step5() {
             <CreditCard className="w-4 h-4" /> 線上信用卡設定
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">MCC 行業代碼 <span className="text-red-500">*</span></Label>
-              <Input placeholder="5999" maxLength={4} className="h-10 rounded-xl bg-white" {...register('online_credit_card_info.mcc_online')} />
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-sm font-medium text-gray-700">
+                MCC 行業代碼 <span className="text-red-500">*</span>
+              </Label>
+              <MccSelect
+                fieldName="online_credit_card_info.mcc_online"
+                error={!!onlineErrors.mcc_online}
+              />
               {onlineErrors.mcc_online && <p className="text-xs text-red-500">{onlineErrors.mcc_online.message}</p>}
             </div>
             <div className="space-y-1.5">
@@ -128,9 +315,10 @@ export function Step5() {
               <Input placeholder="https://www.example.com" type="url" className="h-10 rounded-xl bg-white" {...register('online_credit_card_info.online_shop_url')} />
               {onlineErrors.online_shop_url && <p className="text-xs text-red-500">{onlineErrors.online_shop_url.message}</p>}
             </div>
-            <div className="space-y-1.5 md:col-span-2">
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">商品類別描述 <span className="text-red-500">*</span></Label>
               <Input placeholder="線上販售各類商品及服務" className="h-10 rounded-xl bg-white" {...register('online_credit_card_info.shop_description_online')} />
+              {onlineErrors.shop_description_online && <p className="text-xs text-red-500">{onlineErrors.shop_description_online.message}</p>}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label className="text-sm font-medium text-gray-700">是否有定期定額（訂閱）需求</Label>
@@ -161,9 +349,14 @@ export function Step5() {
             <Store className="w-4 h-4" /> 線下信用卡設定
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">MCC 行業代碼 <span className="text-red-500">*</span></Label>
-              <Input placeholder="5411" maxLength={4} className="h-10 rounded-xl bg-white" {...register('offline_credit_card_info.mcc_offline')} />
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-sm font-medium text-gray-700">
+                MCC 行業代碼 <span className="text-red-500">*</span>
+              </Label>
+              <MccSelect
+                fieldName="offline_credit_card_info.mcc_offline"
+                error={!!offlineErrors.mcc_offline}
+              />
               {offlineErrors.mcc_offline && <p className="text-xs text-red-500">{offlineErrors.mcc_offline.message}</p>}
             </div>
             <div className="space-y-1.5">
@@ -177,9 +370,10 @@ export function Step5() {
               />
               {offlineErrors.device_quantity && <p className="text-xs text-red-500">{offlineErrors.device_quantity.message}</p>}
             </div>
-            <div className="space-y-1.5 md:col-span-2">
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">商品類別描述 <span className="text-red-500">*</span></Label>
               <Input placeholder="販售各類實體商品" className="h-10 rounded-xl bg-white" {...register('offline_credit_card_info.shop_description_offline')} />
+              {offlineErrors.shop_description_offline && <p className="text-xs text-red-500">{offlineErrors.shop_description_offline.message}</p>}
             </div>
           </div>
         </section>
