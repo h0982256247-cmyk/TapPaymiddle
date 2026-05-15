@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
-import { Phone, Mail, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Phone, Mail, RotateCcw } from 'lucide-react'
 
 interface ShopPage {
   partner_account: string
@@ -48,10 +48,6 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
             {shopData.vat_number && (
               <p className="text-xs text-gray-400 mt-0.5">統一編號：{shopData.vat_number}</p>
             )}
-          </div>
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-            <span className="text-xs text-blue-600 font-medium">TapPay 審查頁面</span>
           </div>
         </div>
       </header>
