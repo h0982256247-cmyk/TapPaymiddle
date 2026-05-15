@@ -206,6 +206,19 @@ export interface OnlineCreditCardConfig {
   online_shop_url: string
   shop_description_online: string
   is_subscription_service?: boolean
+  use_shop_page?: boolean
+}
+
+export interface ShopPageInfo {
+  brand_name: string
+  vat_number?: string
+  product_image?: File | null
+  product_name: string
+  product_price: number
+  product_description: string
+  refund_policy: string
+  service_phone: string
+  service_email: string
 }
 
 export interface OfflineCreditCardConfig {
@@ -286,6 +299,7 @@ export interface OnboardingFormData {
   online_credit_card_info?: Partial<OnlineCreditCardConfig>
   offline_credit_card_info?: Partial<OfflineCreditCardConfig>
   cvscom_info?: Partial<CvscomConfig>
+  shop_page_info?: Partial<ShopPageInfo>
 
   // Step 6: 文件上傳
   documents?: Partial<Record<DocumentType, File | null>>

@@ -137,9 +137,30 @@ export const step4Schema = z.object({
 
 export const onlineCreditCardSchema = z.object({
   mcc_online: z.string().min(1, '必填').max(4),
-  online_shop_url: z.string().url('請輸入有效的網址'),
+  online_shop_url: z.string().optional(),
   shop_description_online: z.string().min(1, '必填'),
   is_subscription_service: z.boolean().default(false),
+  use_shop_page: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+  if (!data.use_shop_page) {
+    if (!data.online_shop_url || data.online_shop_url.trim() === '') {
+      ctx.addIssue({ code: 'custom', path: ['online_shop_url'], message: '請輸入網址或選擇快速建立審查頁面' })
+    } else if (!z.string().url().safeParse(data.online_shop_url).success) {
+      ctx.addIssue({ code: 'custom', path: ['online_shop_url'], message: '請輸入有效的網址' })
+    }
+  }
+})
+
+export const shopPageInfoSchema = z.object({
+  brand_name: z.string().min(1, '必填'),
+  vat_number: z.string().optional(),
+  product_image: z.any().optional(),
+  product_name: z.string().min(1, '必填'),
+  product_price: z.number().positive('價格必須大於 0'),
+  product_description: z.string().min(1, '必填'),
+  refund_policy: z.string().min(1, '必填'),
+  service_phone: z.string().min(1, '必填'),
+  service_email: z.string().email('請輸入有效的 Email'),
 })
 
 export const offlineCreditCardSchema = z.object({
@@ -169,6 +190,7 @@ export const step5Schema = z.object({
   online_credit_card_info: z.any().optional(),
   offline_credit_card_info: z.any().optional(),
   cvscom_info: z.any().optional(),
+  shop_page_info: z.any().optional(),
 }).superRefine((data, ctx) => {
   // 只有被選取的支付方式才驗證其子物件
   if (data.payment_methods.includes('ONLINE_CREDIT_CARD')) {
@@ -177,6 +199,15 @@ export const step5Schema = z.object({
       result.error.issues.forEach((issue) => {
         ctx.addIssue({ code: 'custom', path: ['online_credit_card_info', ...issue.path], message: issue.message })
       })
+    }
+    // 如果選擇快速建立審查頁面，也驗證 shop_page_info
+    if ((data.online_credit_card_info as { use_shop_page?: boolean } | undefined)?.use_shop_page) {
+      const shopResult = shopPageInfoSchema.safeParse(data.shop_page_info ?? {})
+      if (!shopResult.success) {
+        shopResult.error.issues.forEach((issue) => {
+          ctx.addIssue({ code: 'custom', path: ['shop_page_info', ...issue.path], message: issue.message })
+        })
+      }
     }
   }
   if (data.payment_methods.includes('OFFLINE_CREDIT_CARD')) {
@@ -223,3 +254,4 @@ export type Step2Data = z.infer<typeof step2Schema>
 export type Step3Data = z.infer<typeof step3Schema>
 export type Step4Data = z.infer<typeof step4Schema>
 export type Step5Data = z.infer<typeof step5Schema>
+export type ShopPageInfoData = z.infer<typeof shopPageInfoSchema>

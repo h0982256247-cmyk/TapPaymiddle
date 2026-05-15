@@ -4,11 +4,15 @@ import { useState } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Store, Package, Landmark, Info, MapPin } from 'lucide-react'
+import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon } from 'lucide-react'
 import { CityDistrictSelect } from '../city-district-select'
+import { FileUpload } from '../file-upload'
 import { cn } from '@/lib/utils'
 import type { OnboardingFormData, PaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
+import { toast } from 'sonner'
+
+const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app'
 
 // ── MCC 代碼分類 ──────────────────────────────
 const MCC_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
@@ -228,6 +232,12 @@ export function Step5() {
   const offlineErrors = (errors.offline_credit_card_info as Record<string, { message?: string }> | undefined) ?? {}
   const cvscomErrors = (errors.cvscom_info as Record<string, { message?: string }> | undefined) ?? {}
 
+  const useShopPage = watch('online_credit_card_info.use_shop_page') ?? false
+  const partnerAccount = watch('partner_account')
+  const merchantType = watch('merchant_type')
+  const brandName = watch('company_info.company_name')
+  const vatNumber = watch('register_info.vat_number')
+
   function toggleMethod(
     current: PaymentMethod[],
     method: PaymentMethod,
@@ -315,10 +325,185 @@ export function Step5() {
               />
               {onlineErrors.mcc_online && <p className="text-xs text-red-500">{onlineErrors.mcc_online.message}</p>}
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">線上商店網址 <span className="text-red-500">*</span></Label>
-              <Input placeholder="https://www.example.com" type="url" className="h-10 rounded-xl bg-white" {...register('online_credit_card_info.online_shop_url')} />
-              {onlineErrors.online_shop_url && <p className="text-xs text-red-500">{onlineErrors.online_shop_url.message}</p>}
+            {/* 網址模式切換 */}
+            <div className="space-y-3 md:col-span-2">
+              <Label className="text-sm font-medium text-gray-700">
+                線上商店網址 <span className="text-red-500">*</span>
+              </Label>
+              <Controller
+                name="online_credit_card_info.use_shop_page"
+                control={control}
+                defaultValue={false}
+                render={({ field }) => (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button"
+                      onClick={() => { field.onChange(false); setValue('shop_page_info', undefined, { shouldValidate: false }) }}
+                      className={`flex items-center gap-2 p-3 rounded-xl border text-left text-sm transition-all
+                        ${!field.value ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                      <Globe className="w-4 h-4 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-xs">我已有網站</p>
+                        <p className={`text-xs mt-0.5 ${!field.value ? 'text-gray-300' : 'text-gray-400'}`}>填寫現有網址</p>
+                      </div>
+                    </button>
+                    <button type="button"
+                      onClick={() => {
+                        field.onChange(true)
+                        // 自動帶入 brand_name 和 vat_number
+                        setValue('shop_page_info.brand_name', brandName ?? '', { shouldValidate: false })
+                        if (merchantType === 'E' && vatNumber) {
+                          setValue('shop_page_info.vat_number', vatNumber, { shouldValidate: false })
+                        }
+                      }}
+                      className={`flex items-center gap-2 p-3 rounded-xl border text-left text-sm transition-all
+                        ${field.value ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                      <Zap className="w-4 h-4 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-xs">快速建立審查頁面</p>
+                        <p className={`text-xs mt-0.5 ${field.value ? 'text-gray-300' : 'text-gray-400'}`}>無需自有網站</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              />
+
+              {/* 已有網站：顯示 URL 輸入 */}
+              {!useShopPage && (
+                <div>
+                  <Input placeholder="https://www.example.com" type="url" className="h-10 rounded-xl bg-white"
+                    {...register('online_credit_card_info.online_shop_url')} />
+                  {onlineErrors.online_shop_url && <p className="text-xs text-red-500 mt-1">{onlineErrors.online_shop_url.message}</p>}
+                </div>
+              )}
+
+              {/* 快速建立：顯示自動產生 URL + 頁面內容表單 */}
+              {useShopPage && (
+                <div className="space-y-4">
+                  {/* 自動產生的審查頁面 URL */}
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-100">
+                    <LinkIcon className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                    <span className="text-xs text-blue-700 flex-1 truncate">
+                      {APP_BASE_URL}/shop/{partnerAccount || '[帳號]'}
+                    </span>
+                    {partnerAccount && (
+                      <button type="button"
+                        onClick={() => { navigator.clipboard.writeText(`${APP_BASE_URL}/shop/${partnerAccount}`); toast.success('已複製') }}
+                        className="text-xs text-blue-600 hover:text-blue-800 flex-shrink-0">
+                        複製
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 商家資訊（auto-filled） */}
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">① 商家資訊（自動帶入）</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-600">品牌 / 公司名稱</Label>
+                        <Input readOnly value={brandName ?? ''} className="h-9 rounded-lg bg-gray-50 text-sm"
+                          {...register('shop_page_info.brand_name')} />
+                      </div>
+                      {merchantType === 'E' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium text-gray-600">統一編號</Label>
+                          <Input readOnly value={vatNumber ?? ''} className="h-9 rounded-lg bg-gray-50 text-sm"
+                            {...register('shop_page_info.vat_number')} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 商品資訊 */}
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">② 商品資訊</h4>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-gray-700">商品圖片 <span className="text-red-500">*</span></Label>
+                      <Controller
+                        name="shop_page_info.product_image"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                          <FileUpload
+                            label=""
+                            hint="JPG · PNG · WEBP"
+                            required
+                            accept=".jpg,.jpeg,.png,.webp"
+                            value={field.value as File | null}
+                            onChange={field.onChange}
+                            error={fieldState.error?.message}
+                          />
+                        )}
+                      />
+                      {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_image && (
+                        <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_image?.message}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">商品名稱 <span className="text-red-500">*</span></Label>
+                        <Input placeholder="範例商品" className="h-9 rounded-lg text-sm bg-white"
+                          {...register('shop_page_info.product_name')} />
+                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_name && (
+                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_name?.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">售價（NT$）<span className="text-red-500">*</span></Label>
+                        <Input type="number" min={1} placeholder="999" className="h-9 rounded-lg text-sm bg-white"
+                          {...register('shop_page_info.product_price', { valueAsNumber: true })} />
+                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_price && (
+                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_price?.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1 md:col-span-2">
+                        <Label className="text-xs font-medium text-gray-700">商品描述 <span className="text-red-500">*</span></Label>
+                        <textarea rows={3} placeholder="詳細描述您的商品或服務內容..."
+                          className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring/50 resize-none"
+                          {...register('shop_page_info.product_description')} />
+                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_description && (
+                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_description?.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 退款政策 */}
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">③ 退款政策</h4>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-gray-700">退款說明 <span className="text-red-500">*</span></Label>
+                      <textarea rows={3} placeholder="例：商品出貨後 7 天內可申請退換貨，需保持商品完整未拆封..."
+                        className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring/50 resize-none"
+                        {...register('shop_page_info.refund_policy')} />
+                      {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.refund_policy && (
+                        <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.refund_policy?.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 客服資訊 */}
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">④ 客服資訊</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">客服電話 <span className="text-red-500">*</span></Label>
+                        <Input placeholder="0800-XXX-XXX" className="h-9 rounded-lg text-sm bg-white"
+                          {...register('shop_page_info.service_phone')} />
+                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.service_phone && (
+                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.service_phone?.message}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">客服 Email <span className="text-red-500">*</span></Label>
+                        <Input type="email" placeholder="service@example.com" className="h-9 rounded-lg text-sm bg-white"
+                          {...register('shop_page_info.service_email')} />
+                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.service_email && (
+                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.service_email?.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">商品類別描述 <span className="text-red-500">*</span></Label>

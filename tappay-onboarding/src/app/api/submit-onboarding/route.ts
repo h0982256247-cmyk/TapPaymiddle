@@ -82,6 +82,29 @@ export async function POST(request: NextRequest) {
       throw new Error(additionalData.error ?? 'additional API 失敗')
     }
 
+    // 5. 儲存快速審查頁面資料（若有開啟）
+    if (body.online_credit_card_info?.use_shop_page && body.shop_page_info) {
+      const shopInfo = body.shop_page_info
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      await supabaseAdmin.from('merchant_shop_pages').upsert({
+        partner_account: body.partner_account,
+        brand_name: shopInfo.brand_name,
+        vat_number: shopInfo.vat_number ?? null,
+        product_image_path: body.product_image_path ?? null,
+        product_name: shopInfo.product_name,
+        product_price: shopInfo.product_price,
+        product_description: shopInfo.product_description ?? null,
+        refund_policy: shopInfo.refund_policy,
+        service_phone: shopInfo.service_phone,
+        service_email: shopInfo.service_email,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'partner_account' })
+    }
+
     // 4. qualification-file（有上傳文件才呼叫）
     if (body.document_paths && Object.keys(body.document_paths).length > 0) {
       const fileRes = await fetch(

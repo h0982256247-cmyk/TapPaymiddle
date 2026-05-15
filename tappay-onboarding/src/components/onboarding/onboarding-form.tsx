@@ -264,6 +264,19 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         }
       }
 
+      // 如果有開啟快速審查頁面，上傳商品圖片
+      let productImagePath: string | null = null
+      if (data.online_credit_card_info?.use_shop_page && data.shop_page_info?.product_image instanceof File) {
+        const file = data.shop_page_info.product_image
+        const partnerAccount = (data.partner_account || 'anon').replace(/[^a-zA-Z0-9_-]/g, '_')
+        const safeName = (file.name || 'product').replace(/[^a-zA-Z0-9_\-.]/g, '_')
+        const filePath = `${partnerAccount}/${Date.now()}_${safeName}`
+        const { error: imgError } = await supabase.storage
+          .from('shop-images')
+          .upload(filePath, file, { upsert: true })
+        if (!imgError) productImagePath = filePath
+      }
+
       const response = await fetch('/api/submit-onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,6 +284,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
           ...data,
           document_paths: documentUrls,
           merchant_id: merchantId, // 補件流程才會有值
+          product_image_path: productImagePath,
         }),
       })
 
