@@ -3,6 +3,7 @@
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import { CityDistrictSelect } from '../city-district-select'
 import type { OnboardingFormData } from '@/types/merchant'
 
@@ -111,7 +112,21 @@ export function Step3() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-gray-700">生日 <span className="text-red-500">*</span></Label>
-            <Input placeholder="20001213（西元年）" maxLength={8} className="h-10 rounded-xl" {...register('merchant_owner_info.sub_merchant_owner_birthday')} />
+            <Controller
+              name="merchant_owner_info.sub_merchant_owner_birthday"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  format="gregorian8"
+                  placeholder="請選擇負責人生日"
+                  maxDate={new Date()}
+                  minDate={new Date(1900, 0, 1)}
+                  error={!!ownerErrors.sub_merchant_owner_birthday}
+                />
+              )}
+            />
             {ownerErrors.sub_merchant_owner_birthday && <p className="text-xs text-red-500">{ownerErrors.sub_merchant_owner_birthday.message}</p>}
           </div>
 
@@ -120,7 +135,21 @@ export function Step3() {
             <>
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-gray-700">身分證發證日期 <span className="text-red-500">*</span></Label>
-                <Input placeholder="1130101（民國年）" maxLength={7} className="h-10 rounded-xl" {...register('merchant_owner_info.id_issued_date')} />
+                <Controller
+                  name="merchant_owner_info.id_issued_date"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      format="roc7"
+                      placeholder="請選擇發證日期"
+                      maxDate={new Date()}
+                      minDate={new Date(1945, 0, 1)}
+                      error={!!ownerErrors.id_issued_date}
+                    />
+                  )}
+                />
                 {ownerErrors.id_issued_date && <p className="text-xs text-red-500">{ownerErrors.id_issued_date.message}</p>}
               </div>
               <div className="space-y-1.5">

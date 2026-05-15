@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Loader2, Globe } from 'lucide-react'
 import type { OnboardingFormData } from '@/types/merchant'
 import { CityDistrictSelect } from '../city-district-select'
@@ -133,7 +134,20 @@ export function Step2() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">成立日期 <span className="text-red-500">*</span></Label>
-              <Input placeholder="1040401（民國年）" maxLength={7} className="h-10 rounded-xl" {...register('register_info.company_establishment_date')} />
+              <Controller
+                name="register_info.company_establishment_date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    format="roc7"
+                    placeholder="請選擇公司成立日期"
+                    maxDate={new Date()}
+                    error={!!registerErrors.company_establishment_date}
+                  />
+                )}
+              />
               {registerErrors.company_establishment_date && <p className="text-xs text-red-500">{registerErrors.company_establishment_date.message}</p>}
             </div>
             <div className="space-y-2">
