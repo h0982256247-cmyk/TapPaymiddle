@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,6 +47,41 @@ export function Step2() {
   const isChainStore = watch('company_info.is_chain_store')
   const companyErrors = (errors.company_info as Record<string, { message?: string }> | undefined) ?? {}
   const registerErrors = (errors.register_info as Record<string, { message?: string }> | undefined) ?? {}
+
+  // Auto-translate English address when city/district or address changes
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyCity = ((watch as any)('company_info.company_city') as string) || ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyAddress = ((watch as any)('company_info.company_address') as string) || ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyPostal = ((watch as any)('company_info.company_postal_code') as string) || ''
+  const isMounted = useRef(false)
+
+  useEffect(() => {
+    // skip initial mount to avoid translating on form restore from draft
+    if (!isMounted.current) {
+      isMounted.current = true
+      return
+    }
+    if (!companyCity || !companyAddress.trim()) return
+
+    const source = [companyCity, companyAddress, companyPostal].filter(Boolean).join(' ')
+    const TARGET = 'company_info.company_address_english'
+
+    const timer = setTimeout(async () => {
+      setTranslating((prev) => ({ ...prev, [TARGET]: true }))
+      try {
+        const result = await translateToEnglish(source)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(setValue as any)(TARGET, result)
+      } finally {
+        setTranslating((prev) => ({ ...prev, [TARGET]: false }))
+      }
+    }, 800)
+
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyCity, companyAddress])
 
   return (
     <div className="space-y-8">
