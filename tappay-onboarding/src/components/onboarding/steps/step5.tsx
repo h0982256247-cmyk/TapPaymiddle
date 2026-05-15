@@ -219,6 +219,7 @@ export function Step5() {
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
 
@@ -234,6 +235,10 @@ export function Step5() {
   ) {
     if (current.includes(method)) {
       onChange(current.filter((m) => m !== method))
+      // 取消時清除對應子物件，避免殘留值觸發驗證錯誤
+      if (method === 'ONLINE_CREDIT_CARD') setValue('online_credit_card_info', undefined)
+      if (method === 'OFFLINE_CREDIT_CARD') setValue('offline_credit_card_info', undefined)
+      if (method === 'CVSCOM_C2C') setValue('cvscom_info', undefined)
     } else {
       onChange([...current, method])
     }

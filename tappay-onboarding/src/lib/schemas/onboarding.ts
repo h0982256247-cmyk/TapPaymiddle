@@ -165,18 +165,35 @@ export const step5Schema = z.object({
   payment_methods: z.array(
     z.enum(['ONLINE_CREDIT_CARD', 'OFFLINE_CREDIT_CARD', 'ATM', 'CVSCOM_C2C'])
   ).min(1, '至少選擇一種支付方式'),
-  online_credit_card_info: onlineCreditCardSchema.optional(),
-  offline_credit_card_info: offlineCreditCardSchema.optional(),
-  cvscom_info: cvscomSchema.optional(),
+  // 子物件宣告為 any，讓 superRefine 自行依選取狀況決定是否驗證
+  online_credit_card_info: z.any().optional(),
+  offline_credit_card_info: z.any().optional(),
+  cvscom_info: z.any().optional(),
 }).superRefine((data, ctx) => {
-  if (data.payment_methods.includes('ONLINE_CREDIT_CARD') && !data.online_credit_card_info) {
-    ctx.addIssue({ code: 'custom', path: ['online_credit_card_info'], message: '選擇線上信用卡需填寫相關資訊' })
+  // 只有被選取的支付方式才驗證其子物件
+  if (data.payment_methods.includes('ONLINE_CREDIT_CARD')) {
+    const result = onlineCreditCardSchema.safeParse(data.online_credit_card_info ?? {})
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({ code: 'custom', path: ['online_credit_card_info', ...issue.path], message: issue.message })
+      })
+    }
   }
-  if (data.payment_methods.includes('OFFLINE_CREDIT_CARD') && !data.offline_credit_card_info) {
-    ctx.addIssue({ code: 'custom', path: ['offline_credit_card_info'], message: '選擇線下信用卡需填寫相關資訊' })
+  if (data.payment_methods.includes('OFFLINE_CREDIT_CARD')) {
+    const result = offlineCreditCardSchema.safeParse(data.offline_credit_card_info ?? {})
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({ code: 'custom', path: ['offline_credit_card_info', ...issue.path], message: issue.message })
+      })
+    }
   }
-  if (data.payment_methods.includes('CVSCOM_C2C') && !data.cvscom_info) {
-    ctx.addIssue({ code: 'custom', path: ['cvscom_info'], message: '選擇超商取貨需填寫相關資訊' })
+  if (data.payment_methods.includes('CVSCOM_C2C')) {
+    const result = cvscomSchema.safeParse(data.cvscom_info ?? {})
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({ code: 'custom', path: ['cvscom_info', ...issue.path], message: issue.message })
+      })
+    }
   }
 })
 
