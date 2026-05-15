@@ -4,15 +4,16 @@ import { useState } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Languages } from 'lucide-react'
+import { Loader2, Globe } from 'lucide-react'
 import type { OnboardingFormData } from '@/types/merchant'
 
 async function translateToEnglish(text: string): Promise<string> {
   const res = await fetch(
     `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=zh-TW|en-US`
   )
-  const data = await res.json()
-  return data.responseData?.translatedText ?? ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any
+  return (data.responseData?.translatedText as string) ?? ''
 }
 
 export function Step2() {
@@ -21,17 +22,20 @@ export function Step2() {
     register,
     control,
     watch,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setValue,
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
 
-  async function handleTranslate(sourceField: keyof OnboardingFormData | string, targetField: string) {
-    const source = watch(sourceField as never) as string
+  async function handleTranslate(sourceField: string, targetField: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const source = (watch as any)(sourceField) as string
     if (!source?.trim()) return
     setTranslating((prev) => ({ ...prev, [targetField]: true }))
     try {
       const result = await translateToEnglish(source)
-      setValue(targetField as never, result)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(setValue as any)(targetField, result)
     } finally {
       setTranslating((prev) => ({ ...prev, [targetField]: false }))
     }
@@ -148,7 +152,7 @@ export function Step2() {
               >
                 {translating['company_info.company_name_english']
                   ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Languages className="w-3 h-3" />}
+                  : <Globe className="w-3 h-3" />}
                 一鍵翻譯
               </button>
             </div>
@@ -178,7 +182,7 @@ export function Step2() {
               >
                 {translating['company_info.company_address_english']
                   ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Languages className="w-3 h-3" />}
+                  : <Globe className="w-3 h-3" />}
                 一鍵翻譯
               </button>
             </div>
