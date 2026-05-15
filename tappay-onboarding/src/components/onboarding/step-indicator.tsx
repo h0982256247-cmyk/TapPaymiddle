@@ -19,9 +19,10 @@ const STEPS: Step[] = [
 interface StepIndicatorProps {
   currentStep: number
   completedSteps: number[]
+  onStepClick?: (step: number) => void
 }
 
-export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, completedSteps, onStepClick }: StepIndicatorProps) {
   return (
     <div className="w-full">
       {/* Mobile: progress bar */}
@@ -35,18 +36,23 @@ export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProp
         {STEPS.map((step, index) => {
           const isCompleted = completedSteps.includes(step.number)
           const isCurrent = step.number === currentStep
-          const isUpcoming = step.number > currentStep && !isCompleted
+          const isUpcoming = !isCompleted && !isCurrent
+          const isClickable = isCompleted || isCurrent
 
           return (
             <div key={step.number} className="flex items-center flex-1 last:flex-none">
               {/* Step circle */}
               <div className="flex flex-col items-center">
-                <div
+                <button
+                  type="button"
+                  disabled={!isClickable}
+                  onClick={() => isClickable && onStepClick?.(step.number)}
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 border-2',
-                    isCompleted && 'bg-gray-900 border-gray-900 text-white',
+                    isCompleted && 'bg-gray-900 border-gray-900 text-white hover:bg-gray-700 hover:border-gray-700',
                     isCurrent && 'bg-white border-gray-900 text-gray-900',
-                    isUpcoming && 'bg-white border-gray-200 text-gray-300'
+                    isUpcoming && 'bg-white border-gray-200 text-gray-300 cursor-not-allowed',
+                    isClickable && 'cursor-pointer'
                   )}
                 >
                   {isCompleted ? (
@@ -54,7 +60,7 @@ export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProp
                   ) : (
                     <span>{step.number}</span>
                   )}
-                </div>
+                </button>
                 <div className="mt-1.5 text-center min-w-[72px]">
                   <p className={cn(
                     'text-xs font-medium leading-tight',

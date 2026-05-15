@@ -228,6 +228,13 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  function handleStepClick(step: number) {
+    if (!completedSteps.includes(step) && step !== currentStep) return
+    setValidationErrors([])
+    setCurrentStep(step)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   async function onSubmit(data: OnboardingFormData) {
     if (currentStep !== TOTAL_STEPS) return
     setSubmitting(true)
@@ -323,7 +330,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
                 </Button>
               </div>
             </div>
-            <StepIndicator currentStep={currentStep} completedSteps={completedSteps} />
+            <StepIndicator currentStep={currentStep} completedSteps={completedSteps} onStepClick={handleStepClick} />
           </div>
         </div>
 
