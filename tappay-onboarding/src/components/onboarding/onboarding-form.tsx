@@ -36,6 +36,7 @@ const DEFAULT_VALUES: Partial<OnboardingFormData> = {
   payment_methods: [],
   company_info: { is_chain_store: false },
   merchant_owner_info: { is_foreigner: false },
+  offline_credit_card_info: { device_quantity: 1 },
 }
 
 // 欄位名稱對照表（顯示中文）
