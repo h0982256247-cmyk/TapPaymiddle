@@ -328,7 +328,14 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
 
         {/* Form Content */}
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+                e.preventDefault()
+              }
+            }}
+          >
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
               <StepComponent />
             </div>
