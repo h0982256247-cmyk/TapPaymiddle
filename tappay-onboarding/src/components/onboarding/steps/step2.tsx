@@ -28,10 +28,11 @@ export function Step2() {
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
 
-  async function handleTranslate(sourceField: string, targetField: string) {
+  async function handleTranslate(sourceFields: string | string[], targetField: string) {
+    const fields = Array.isArray(sourceFields) ? sourceFields : [sourceFields]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const source = (watch as any)(sourceField) as string
-    if (!source?.trim()) return
+    const source = fields.map((f) => ((watch as any)(f) as string) ?? '').filter(Boolean).join(' ')
+    if (!source.trim()) return
     setTranslating((prev) => ({ ...prev, [targetField]: true }))
     try {
       const result = await translateToEnglish(source)
@@ -170,7 +171,10 @@ export function Step2() {
               <Label className="text-sm font-medium text-gray-700">英文地址</Label>
               <button
                 type="button"
-                onClick={() => handleTranslate('company_info.company_address', 'company_info.company_address_english')}
+                onClick={() => handleTranslate(
+                  ['company_info.company_city', 'company_info.company_address', 'company_info.company_postal_code'],
+                  'company_info.company_address_english'
+                )}
                 disabled={translating['company_info.company_address_english']}
                 className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
               >
