@@ -26,7 +26,11 @@ export function CityDistrictSelect({
   cityLabel = '縣市地區',
   required = true,
 }: Props) {
-  const { setValue, watch, register } = useFormContext<OnboardingFormData>()
+  const { setValue, watch, register, formState: { errors } } = useFormContext<OnboardingFormData>()
+
+  // Resolve nested error message from a dot-separated field path
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cityError: string | undefined = cityField.split('.').reduce((obj: any, key) => obj?.[key], errors)?.message
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentCity = (watch as any)(cityField) as string | undefined
@@ -91,7 +95,7 @@ export function CityDistrictSelect({
         {/* 縣市 dropdown */}
         <div className="relative flex-1">
           <select
-            className={selectClass}
+            className={`${selectClass} ${cityError && !selectedCity ? 'border-red-400' : ''}`}
             value={selectedCity}
             onChange={(e) => handleCityChange(e.target.value)}
           >
@@ -108,7 +112,7 @@ export function CityDistrictSelect({
         {/* 區 dropdown */}
         <div className="relative flex-1">
           <select
-            className={selectClass}
+            className={`${selectClass} ${cityError && selectedCity && !selectedDistrict ? 'border-red-400' : ''}`}
             value={selectedDistrict}
             disabled={!selectedCity}
             onChange={(e) => handleDistrictChange(e.target.value)}
@@ -123,6 +127,7 @@ export function CityDistrictSelect({
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         </div>
       </div>
+      {cityError && <p className="text-xs text-red-500">{cityError}</p>}
     </div>
   )
 }

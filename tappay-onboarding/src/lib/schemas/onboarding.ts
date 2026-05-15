@@ -1,4 +1,10 @@
 import { z } from 'zod'
+import { parseCityDistrict } from '@/lib/taiwan-districts'
+
+const cityDistrictField = z
+  .string()
+  .min(1, '請選擇縣市')
+  .refine((val) => parseCityDistrict(val).district !== '', { message: '請選擇區' })
 
 // ================================================
 // Step 1: 帳號 + 商家類型
@@ -29,7 +35,7 @@ export const registerInfoSchema = z.object({
   register_name: z.string().min(1, '必填').max(30),
   register_name_english: z.string().min(1, '必填').max(100),
   register_postal_code: z.string().length(3, '郵遞區號須為 3 碼'),
-  register_city: z.string().min(1, '必填').max(15),
+  register_city: cityDistrictField,
   register_address: z.string().min(1, '必填').max(26),
   is_prepaid_product: z.boolean(),
   company_capital: z.number().positive('資本額必須大於 0'),
@@ -42,7 +48,7 @@ export const companyInfoSchema = z.object({
   company_name: z.string().min(1, '必填').max(13),
   company_name_english: z.string().min(1, '必填').max(22),
   company_postal_code: z.string().length(3, '郵遞區號須為 3 碼'),
-  company_city: z.string().min(1, '必填').max(15),
+  company_city: cityDistrictField,
   company_address: z.string().min(1, '必填').max(26),
   company_address_english: z.string().max(130).optional(),
   company_phone_area_code: z.string().min(1, '必填').max(4),
@@ -89,7 +95,7 @@ export const merchantOwnerInfoSchema = z.object({
   id_issued_place: z.string().max(8).optional(),
   id_replacement_category: z.enum(['FIRST_ISSUED', 'REISSUED', 'REPLACED']).optional(),
   sub_merchant_owner_postal_code: z.string().length(3, '郵遞區號須為 3 碼'),
-  sub_merchant_owner_city: z.string().min(1, '必填').max(15),
+  sub_merchant_owner_city: cityDistrictField,
   sub_merchant_owner_address: z.string().min(1, '必填').max(26),
 }).superRefine((data, ctx) => {
   if (!data.is_foreigner) {
@@ -148,7 +154,7 @@ export const cvscomSchema = z.object({
   return_receiver_name: z.string().min(1, '必填').max(10),
   return_receiver_phone: z.string().min(1, '必填').max(10),
   return_receiver_postal_code: z.string().length(3, '郵遞區號須為 3 碼'),
-  return_receiver_city: z.string().min(1, '必填').max(15),
+  return_receiver_city: cityDistrictField,
   return_receiver_address: z.string().min(1, '必填').max(80),
   return_store_id: z.string().optional(),
   return_store_name: z.string().optional(),
