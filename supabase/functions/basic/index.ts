@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { tapPayRequest, getPlatformKey } from '../_shared/tappay-client.ts'
 import { getAdminClient, logApiCall } from '../_shared/supabase-admin.ts'
 
@@ -24,19 +23,6 @@ serve(async (req) => {
       })
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const body = await req.json()
     const {
       partner_account,
@@ -54,6 +40,7 @@ serve(async (req) => {
 
     // Build BASIC API payload
     const tappayPayload: Record<string, unknown> = {
+      platform_key: platformKey,
       partner_account,
       pf_account: null,
       merchant_type,
