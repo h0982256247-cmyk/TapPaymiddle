@@ -169,28 +169,28 @@ export function Step3() {
                   {...register('merchant_owner_info.id_issued_place')}
                 >
                   <option value="">請選擇</option>
-                  <option value="北市">台北市</option>
+                  <option value="北市">北市</option>
                   <option value="新北市">新北市</option>
-                  <option value="基市">基隆市</option>
-                  <option value="桃市">桃園市</option>
-                  <option value="竹市">新竹市</option>
-                  <option value="竹縣">新竹縣</option>
-                  <option value="苗縣">苗栗縣</option>
-                  <option value="中市">台中市</option>
-                  <option value="彰縣">彰化縣</option>
-                  <option value="投縣">南投縣</option>
-                  <option value="雲縣">雲林縣</option>
-                  <option value="嘉市">嘉義市</option>
-                  <option value="嘉縣">嘉義縣</option>
-                  <option value="南市">台南市</option>
-                  <option value="高市">高雄市</option>
-                  <option value="屏縣">屏東縣</option>
-                  <option value="宜縣">宜蘭縣</option>
-                  <option value="花縣">花蓮縣</option>
-                  <option value="東縣">台東縣</option>
-                  <option value="澎縣">澎湖縣</option>
-                  <option value="金縣">金門縣</option>
-                  <option value="連縣">連江縣</option>
+                  <option value="基市">基市</option>
+                  <option value="桃市">桃市</option>
+                  <option value="竹市">竹市</option>
+                  <option value="竹縣">竹縣</option>
+                  <option value="苗縣">苗縣</option>
+                  <option value="中市">中市</option>
+                  <option value="彰縣">彰縣</option>
+                  <option value="投縣">投縣</option>
+                  <option value="雲縣">雲縣</option>
+                  <option value="嘉市">嘉市</option>
+                  <option value="嘉縣">嘉縣</option>
+                  <option value="南市">南市</option>
+                  <option value="高市">高市</option>
+                  <option value="屏縣">屏縣</option>
+                  <option value="宜縣">宜縣</option>
+                  <option value="花縣">花縣</option>
+                  <option value="東縣">東縣</option>
+                  <option value="澎縣">澎縣</option>
+                  <option value="金縣">金縣</option>
+                  <option value="連縣">連縣</option>
                 </select>
               </div>
               <div className="space-y-2 md:col-span-2">
