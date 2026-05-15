@@ -1,6 +1,8 @@
 'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Building2, User, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Step1Data } from '@/lib/schemas/onboarding'
@@ -13,9 +15,12 @@ const INDUSTRY_OPTIONS = [
 ]
 
 export function Step1() {
-  const { control, watch } = useFormContext<Step1Data>()
-
-  const merchantType = watch('merchant_type')
+  const {
+    register,
+    control,
+    watch,
+    formState: { errors },
+  } = useFormContext<Step1Data>()
 
   return (
     <div className="space-y-8">
