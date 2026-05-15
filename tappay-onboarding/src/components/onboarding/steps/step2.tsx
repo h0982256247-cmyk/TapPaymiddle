@@ -1,17 +1,41 @@
 'use client'
 
+import { useState } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Loader2, Languages } from 'lucide-react'
 import type { OnboardingFormData } from '@/types/merchant'
 
+async function translateToEnglish(text: string): Promise<string> {
+  const res = await fetch(
+    `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=zh-TW|en-US`
+  )
+  const data = await res.json()
+  return data.responseData?.translatedText ?? ''
+}
+
 export function Step2() {
+  const [translating, setTranslating] = useState<Record<string, boolean>>({})
   const {
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
+
+  async function handleTranslate(sourceField: keyof OnboardingFormData | string, targetField: string) {
+    const source = watch(sourceField as never) as string
+    if (!source?.trim()) return
+    setTranslating((prev) => ({ ...prev, [targetField]: true }))
+    try {
+      const result = await translateToEnglish(source)
+      setValue(targetField as never, result)
+    } finally {
+      setTranslating((prev) => ({ ...prev, [targetField]: false }))
+    }
+  }
 
   const merchantType = watch('merchant_type')
   const isChainStore = watch('company_info.is_chain_store')
@@ -114,7 +138,20 @@ export function Step2() {
             <p className="text-xs text-gray-400">持卡人對帳單顯示，請勿填寫個人姓名</p>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">英文名稱 <span className="text-red-500">*</span></Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">英文名稱 <span className="text-red-500">*</span></Label>
+              <button
+                type="button"
+                onClick={() => handleTranslate('company_info.company_name', 'company_info.company_name_english')}
+                disabled={translating['company_info.company_name_english']}
+                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
+              >
+                {translating['company_info.company_name_english']
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Languages className="w-3 h-3" />}
+                一鍵翻譯
+              </button>
+            </div>
             <Input placeholder="Test Shop" className="h-10 rounded-xl" {...register('company_info.company_name_english')} />
             {companyErrors.company_name_english && <p className="text-xs text-red-500">{companyErrors.company_name_english.message}</p>}
           </div>
@@ -131,7 +168,20 @@ export function Step2() {
             <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('company_info.company_address')} />
           </div>
           <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-sm font-medium text-gray-700">英文地址</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">英文地址</Label>
+              <button
+                type="button"
+                onClick={() => handleTranslate('company_info.company_address', 'company_info.company_address_english')}
+                disabled={translating['company_info.company_address_english']}
+                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
+              >
+                {translating['company_info.company_address_english']
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Languages className="w-3 h-3" />}
+                一鍵翻譯
+              </button>
+            </div>
             <Input placeholder="100 Roosevelt Rd Sec 2" className="h-10 rounded-xl" {...register('company_info.company_address_english')} />
           </div>
           <div className="space-y-1.5">
