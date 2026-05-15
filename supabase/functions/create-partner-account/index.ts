@@ -81,7 +81,7 @@ serve(async (req) => {
         const { data: merchant } = await admin
           .from('merchants')
           .insert({
-            user_id: user.id,
+            user_id: null,  // 匿名申請流程，無登入使用者
             partner_account,
             contact_email,
             company_name,
