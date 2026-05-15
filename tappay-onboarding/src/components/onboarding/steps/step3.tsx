@@ -58,20 +58,9 @@ export function Step3() {
             <Input placeholder="王小明" className="h-10 rounded-xl max-w-xs" {...register('contact_info.business_contact_name')} />
             {contactErrors.business_contact_name && <p className="text-xs text-red-500">{contactErrors.business_contact_name.message}</p>}
           </div>
-          {/* 電話自動帶入自 Step 2，不顯示輸入框 */}
+          {/* 電話自動帶入自 Step 2，完全隱藏 */}
           <input type="hidden" {...register('contact_info.business_contact_phone_area_code')} />
           <input type="hidden" {...register('contact_info.business_contact_phone')} />
-          {/* 顯示目前帶入的電話（唯讀提示） */}
-          {(companyPhoneAreaCode || companyPhone) && (
-            <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-sm font-medium text-gray-700">聯絡電話</Label>
-              <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500">
-                {companyPhoneAreaCode && <span>({companyPhoneAreaCode})</span>}
-                <span>{companyPhone}</span>
-                <span className="ml-auto text-xs text-gray-400">自動帶入自商家電話</span>
-              </div>
-            </div>
-          )}
           <div className="space-y-1.5 md:col-span-2">
             <Label className="text-sm font-medium text-gray-700">帳務聯絡人 Email <span className="text-red-500">*</span></Label>
             <Input type="email" placeholder="accounting@company.com" className="h-10 rounded-xl" {...register('contact_info.accounting_contact_email')} />
