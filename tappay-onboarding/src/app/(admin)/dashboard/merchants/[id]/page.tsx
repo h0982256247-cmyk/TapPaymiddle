@@ -5,9 +5,10 @@ import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/status-badge'
 import type { MerchantStatus, PaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS, INDUSTRY_LABELS } from '@/types/merchant'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import type { Merchant, MerchantBasicInfo, MerchantPaymentMethod, MerchantDocument, MerchantApiLog, MerchantNotifyLog } from '@/types/merchant'
+import { CopyField } from '@/components/shared/copy-field'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,12 @@ export default async function MerchantDetailPage({
                   {merchant.company_name ?? merchant.partner_account}
                 </h1>
                 <p className="text-sm text-gray-500 font-mono mt-0.5">{merchant.partner_account}</p>
+                {merchant.partner_key && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-gray-500">
+                    <KeyRound className="w-3.5 h-3.5 flex-shrink-0" />
+                    <CopyField value={merchant.partner_key} masked />
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mt-2">
                   <StatusBadge status={merchant.status as MerchantStatus} />
                   <span className="text-xs text-gray-400">
