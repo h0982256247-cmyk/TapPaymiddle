@@ -240,9 +240,9 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
 
           for (const file of fileArray) {
             if (!file || !(file instanceof File)) continue
-            const rawAccount = data.partner_account ?? `anon_${Date.now()}`
-            const partnerAccount = rawAccount.replace(/[^a-zA-Z0-9_-]/g, '_')
-            const safeName = (file.name ?? 'file').replace(/[^a-zA-Z0-9_\-.]/g, '_')
+            const rawAccount = data.partner_account || `anon_${Date.now()}`
+            const partnerAccount = rawAccount.replace(/[^a-zA-Z0-9_-]/g, '_') || `anon_${Date.now()}`
+            const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9_\-.]/g, '_') || 'file'
             const filePath = `${partnerAccount}/${Date.now()}_${safeName}`
             const { error } = await supabase.storage
               .from('merchant-documents')
