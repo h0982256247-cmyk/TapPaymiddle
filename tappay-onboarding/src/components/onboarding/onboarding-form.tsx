@@ -229,6 +229,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
   }
 
   async function onSubmit(data: OnboardingFormData) {
+    if (currentStep !== TOTAL_STEPS) return
     setSubmitting(true)
     try {
       const documentUrls: Record<string, string[]> = {}
