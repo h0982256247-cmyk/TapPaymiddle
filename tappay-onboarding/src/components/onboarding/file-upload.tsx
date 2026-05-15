@@ -1,12 +1,15 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
-import { Upload, X, FileText, ImageIcon, Loader2, CheckCircle2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Upload, X, FileText, ImageIcon, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { validateFile } from '@/lib/schemas/onboarding'
 
 interface FileUploadProps {
   label: string
+  /** 短格式提示，顯示於標題右側（如 "JPG · PNG"） */
+  hint?: string
+  /** 較長的說明文字，顯示於標題下方 */
   description?: string
   required?: boolean
   accept?: string
@@ -19,6 +22,7 @@ interface FileUploadProps {
 
 export function FileUpload({
   label,
+  hint,
   description,
   required,
   accept = '.jpg,.jpeg,.png,.pdf',
@@ -30,41 +34,15 @@ export function FileUpload({
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [uploading, setUploading] = useState(false)
 
-  const files = value
-    ? Array.isArray(value)
-      ? value
-      : [value]
-    : []
+  const files = value ? (Array.isArray(value) ? value : [value]) : []
 
   function handleFiles(newFiles: FileList | null) {
     if (!newFiles || newFiles.length === 0) return
-
     const fileArray = Array.from(newFiles)
     const validationError = validateFile(fileArray[0])
     if (validationError) return
-
-    if (multiple) {
-      onChange(fileArray)
-    } else {
-      onChange(fileArray[0])
-    }
-  }
-
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  function handleDragLeave() {
-    setIsDragging(false)
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    setIsDragging(false)
-    handleFiles(e.dataTransfer.files)
+    onChange(multiple ? fileArray : fileArray[0])
   }
 
   function removeFile(index: number) {
@@ -77,40 +55,46 @@ export function FileUpload({
   }
 
   function getFileIcon(file: File) {
-    if (file.type === 'application/pdf') return <FileText className="w-4 h-4 text-red-500" />
-    return <ImageIcon className="w-4 h-4 text-blue-500" />
+    if (file.type === 'application/pdf') return <FileText className="w-3.5 h-3.5 text-red-400" />
+    return <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
   }
 
   function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  const hasFile = files.length > 0
+
   return (
-    <div className={cn('space-y-2', className)}>
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700">
+    <div className={cn('space-y-1', className)}>
+      {/* 標題列 */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-gray-700 leading-tight">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-        {description && (
-          <span className="text-xs text-gray-400">{description}</span>
-        )}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
+        </span>
+        {hint && <span className="text-xs text-gray-400 flex-shrink-0">{hint}</span>}
       </div>
 
-      {/* Drop zone */}
+      {/* 說明文字（較長） */}
+      {description && (
+        <p className="text-xs text-gray-400 leading-relaxed">{description}</p>
+      )}
+
+      {/* 上傳區 */}
       <div
         onClick={() => inputRef.current?.click()}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files) }}
         className={cn(
-          'relative border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-200',
+          'border border-dashed rounded-lg cursor-pointer transition-all duration-150',
           'hover:border-gray-400 hover:bg-gray-50/50',
-          isDragging ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white',
-          error && 'border-red-300 bg-red-50/30',
-          files.length > 0 && 'border-green-300 bg-green-50/20'
+          isDragging && 'border-gray-600 bg-gray-50',
+          !isDragging && !hasFile && !error && 'border-gray-200 bg-white',
+          error && !hasFile && 'border-red-300 bg-red-50/30',
+          hasFile && 'border-green-300 bg-green-50/20 hover:bg-green-50/40',
         )}
       >
         <input
@@ -122,48 +106,44 @@ export function FileUpload({
           onChange={(e) => handleFiles(e.target.files)}
         />
 
-        {files.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 text-center">
-            {uploading ? (
-              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-            ) : (
-              <Upload className={cn(
-                'w-8 h-8 transition-colors',
-                isDragging ? 'text-gray-900' : 'text-gray-300'
-              )} />
-            )}
-            <div>
-              <p className="text-sm text-gray-500">
-                <span className="font-medium text-gray-700">點擊上傳</span> 或拖曳檔案
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">JPG、PNG、PDF，最大 10MB</p>
-            </div>
+        {!hasFile ? (
+          /* 空狀態：精簡橫列 */
+          <div className="flex items-center justify-center gap-2 py-3 px-4">
+            <Upload className={cn(
+              'w-4 h-4 flex-shrink-0 transition-colors',
+              isDragging ? 'text-gray-600' : 'text-gray-300'
+            )} />
+            <p className="text-sm text-gray-500">
+              <span className="font-medium text-gray-600">點擊上傳</span>
+              <span className="text-gray-400"> 或拖曳</span>
+            </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          /* 已上傳：檔案列表 */
+          <div className="p-2 space-y-1.5">
             {files.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 p-2 rounded-lg bg-white border border-gray-100"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-white border border-gray-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 {getFileIcon(file)}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 truncate">{file.name}</p>
-                  <p className="text-xs text-gray-400">{formatSize(file.size)}</p>
+                  <p className="text-xs text-gray-700 truncate">{file.name}</p>
                 </div>
-                <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                <span className="text-xs text-gray-400 flex-shrink-0">{formatSize(file.size)}</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                 <button
                   type="button"
                   onClick={() => removeFile(index)}
-                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             ))}
-            {(multiple || files.length === 0) && (
-              <p className="text-xs text-center text-gray-400 pt-1">點擊繼續新增</p>
+            {multiple && (
+              <p className="text-xs text-center text-gray-400 pb-1">點擊繼續新增</p>
             )}
           </div>
         )}

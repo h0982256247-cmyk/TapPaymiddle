@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,17 @@ export function Step3() {
   const isForeigner = watch('merchant_owner_info.is_foreigner')
   const contactErrors = (errors.contact_info as Record<string, { message?: string }> | undefined) ?? {}
   const ownerErrors = (errors.merchant_owner_info as Record<string, { message?: string }> | undefined) ?? {}
+
+  // ── 切換到「外籍人士」時清除本國人專屬欄位的殘留值 ──
+  const prevIsForeignerRef = useRef<boolean | undefined>(undefined)
+  useEffect(() => {
+    if (prevIsForeignerRef.current === false && isForeigner === true) {
+      setValue('merchant_owner_info.id_issued_date', undefined, { shouldValidate: false })
+      setValue('merchant_owner_info.id_issued_place', '', { shouldValidate: false })
+      setValue('merchant_owner_info.id_replacement_category', undefined, { shouldValidate: false })
+    }
+    prevIsForeignerRef.current = isForeigner
+  }, [isForeigner, setValue])
 
   // 從 Step 2 公司電話自動帶入業務聯絡電話
   const companyPhoneAreaCode = watch('company_info.company_phone_area_code')

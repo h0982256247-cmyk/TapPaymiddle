@@ -127,7 +127,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
     mode: 'onTouched',
   })
 
-  const { handleSubmit, trigger, getValues, reset } = methods
+  const { handleSubmit: rhfHandleSubmit, trigger, getValues, reset } = methods
 
   // ── 頁面載入：從 localStorage 恢復草稿 ──
   useEffect(() => {
@@ -338,11 +338,9 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         {/* Form Content */}
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => e.preventDefault()}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
-                e.preventDefault()
-              }
+              if (e.key === 'Enter') e.preventDefault()
             }}
           >
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
@@ -366,8 +364,9 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
                 <span className="text-sm text-gray-400">{currentStep} / {TOTAL_STEPS}</span>
                 {isLastStep ? (
                   <Button
-                    type="submit"
+                    type="button"
                     disabled={submitting}
+                    onClick={() => rhfHandleSubmit(onSubmit)()}
                     className="h-10 rounded-xl bg-gray-900 hover:bg-gray-800 text-white gap-2 px-6"
                   >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" />提交申請</>}

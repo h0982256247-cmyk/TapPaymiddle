@@ -49,6 +49,24 @@ export function Step2() {
   const companyErrors = (errors.company_info as Record<string, { message?: string }> | undefined) ?? {}
   const registerErrors = (errors.register_info as Record<string, { message?: string }> | undefined) ?? {}
 
+  // ── 切換商家類型：從「法人」改成「自然人」時清除 register_info 殘留值 ──
+  const prevMerchantTypeRef = useRef(merchantType)
+  useEffect(() => {
+    if (prevMerchantTypeRef.current === 'E' && merchantType === 'P') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(setValue as any)('register_info', undefined, { shouldValidate: false, shouldDirty: false })
+    }
+    prevMerchantTypeRef.current = merchantType
+  }, [merchantType, setValue])
+
+  // ── 切換「非連鎖店」時清除 chain_store_type 殘留值 ──
+  useEffect(() => {
+    if (!isChainStore) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(setValue as any)('company_info.chain_store_type', '', { shouldValidate: false })
+    }
+  }, [isChainStore, setValue])
+
   // Auto-translate English address when city/district or address changes
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyCity = ((watch as any)('company_info.company_city') as string) || ''
