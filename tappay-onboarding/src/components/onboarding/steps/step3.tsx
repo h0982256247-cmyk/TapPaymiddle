@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,12 +19,26 @@ export function Step3() {
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
 
   const isForeigner = watch('merchant_owner_info.is_foreigner')
   const contactErrors = (errors.contact_info as Record<string, { message?: string }> | undefined) ?? {}
   const ownerErrors = (errors.merchant_owner_info as Record<string, { message?: string }> | undefined) ?? {}
+
+  // 從 Step 2 公司電話自動帶入業務聯絡電話
+  const companyPhoneAreaCode = watch('company_info.company_phone_area_code')
+  const companyPhone = watch('company_info.company_phone')
+
+  useEffect(() => {
+    if (companyPhoneAreaCode) {
+      setValue('contact_info.business_contact_phone_area_code', companyPhoneAreaCode, { shouldValidate: false })
+    }
+    if (companyPhone) {
+      setValue('contact_info.business_contact_phone', companyPhone, { shouldValidate: false })
+    }
+  }, [companyPhoneAreaCode, companyPhone, setValue])
 
   return (
     <div className="space-y-8">
@@ -43,14 +58,20 @@ export function Step3() {
             <Input placeholder="王小明" className="h-10 rounded-xl max-w-xs" {...register('contact_info.business_contact_name')} />
             {contactErrors.business_contact_name && <p className="text-xs text-red-500">{contactErrors.business_contact_name.message}</p>}
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">電話區碼 <span className="text-red-500">*</span></Label>
-            <Input placeholder="02" maxLength={4} className="h-10 rounded-xl" {...register('contact_info.business_contact_phone_area_code')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">聯絡電話 <span className="text-red-500">*</span></Label>
-            <Input placeholder="87654321" maxLength={15} className="h-10 rounded-xl" {...register('contact_info.business_contact_phone')} />
-          </div>
+          {/* 電話自動帶入自 Step 2，不顯示輸入框 */}
+          <input type="hidden" {...register('contact_info.business_contact_phone_area_code')} />
+          <input type="hidden" {...register('contact_info.business_contact_phone')} />
+          {/* 顯示目前帶入的電話（唯讀提示） */}
+          {(companyPhoneAreaCode || companyPhone) && (
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-sm font-medium text-gray-700">聯絡電話</Label>
+              <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500">
+                {companyPhoneAreaCode && <span>({companyPhoneAreaCode})</span>}
+                <span>{companyPhone}</span>
+                <span className="ml-auto text-xs text-gray-400">自動帶入自商家電話</span>
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5 md:col-span-2">
             <Label className="text-sm font-medium text-gray-700">帳務聯絡人 Email <span className="text-red-500">*</span></Label>
             <Input type="email" placeholder="accounting@company.com" className="h-10 rounded-xl" {...register('contact_info.accounting_contact_email')} />
