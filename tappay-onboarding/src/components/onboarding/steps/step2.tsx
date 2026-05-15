@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Globe } from 'lucide-react'
 import type { OnboardingFormData } from '@/types/merchant'
+import { CityDistrictSelect } from '../city-district-select'
 
 async function translateToEnglish(text: string): Promise<string> {
   const res = await fetch(
@@ -85,15 +86,11 @@ export function Step2() {
               <Input placeholder="XX Co., Ltd." className="h-10 rounded-xl" {...register('register_info.register_name_english')} />
               {registerErrors.register_name_english && <p className="text-xs text-red-500">{registerErrors.register_name_english.message}</p>}
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">郵遞區號 <span className="text-red-500">*</span></Label>
-              <Input placeholder="100" maxLength={3} className="h-10 rounded-xl" {...register('register_info.register_postal_code')} />
-              {registerErrors.register_postal_code && <p className="text-xs text-red-500">{registerErrors.register_postal_code.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">縣市地區 <span className="text-red-500">*</span></Label>
-              <Input placeholder="台北市中正區" className="h-10 rounded-xl" {...register('register_info.register_city')} />
-            </div>
+            <CityDistrictSelect
+              postalCodeField="register_info.register_postal_code"
+              cityField="register_info.register_city"
+              cityLabel="縣市地區"
+            />
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-sm font-medium text-gray-700">登記地址 <span className="text-red-500">*</span></Label>
               <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('register_info.register_address')} />
@@ -159,14 +156,11 @@ export function Step2() {
             <Input placeholder="Test Shop" className="h-10 rounded-xl" {...register('company_info.company_name_english')} />
             {companyErrors.company_name_english && <p className="text-xs text-red-500">{companyErrors.company_name_english.message}</p>}
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">郵遞區號 <span className="text-red-500">*</span></Label>
-            <Input placeholder="100" maxLength={3} className="h-10 rounded-xl" {...register('company_info.company_postal_code')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">縣市地區 <span className="text-red-500">*</span></Label>
-            <Input placeholder="台北市中正區" className="h-10 rounded-xl" {...register('company_info.company_city')} />
-          </div>
+          <CityDistrictSelect
+            postalCodeField="company_info.company_postal_code"
+            cityField="company_info.company_city"
+            cityLabel="縣市地區"
+          />
           <div className="space-y-1.5 md:col-span-2">
             <Label className="text-sm font-medium text-gray-700">營業地址 <span className="text-red-500">*</span></Label>
             <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('company_info.company_address')} />

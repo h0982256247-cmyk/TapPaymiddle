@@ -3,6 +3,7 @@
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CityDistrictSelect } from '../city-district-select'
 import type { OnboardingFormData } from '@/types/merchant'
 
 const ID_REPLACEMENT_OPTIONS = [
@@ -152,14 +153,11 @@ export function Step3() {
           )}
 
           {/* Address */}
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">負責人郵遞區號 <span className="text-red-500">*</span></Label>
-            <Input placeholder="100" maxLength={3} className="h-10 rounded-xl" {...register('merchant_owner_info.sub_merchant_owner_postal_code')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">縣市地區 <span className="text-red-500">*</span></Label>
-            <Input placeholder="台北市中正區" className="h-10 rounded-xl" {...register('merchant_owner_info.sub_merchant_owner_city')} />
-          </div>
+          <CityDistrictSelect
+            postalCodeField="merchant_owner_info.sub_merchant_owner_postal_code"
+            cityField="merchant_owner_info.sub_merchant_owner_city"
+            cityLabel="縣市地區"
+          />
           <div className="space-y-1.5 md:col-span-2">
             <Label className="text-sm font-medium text-gray-700">負責人地址 <span className="text-red-500">*</span></Label>
             <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('merchant_owner_info.sub_merchant_owner_address')} />

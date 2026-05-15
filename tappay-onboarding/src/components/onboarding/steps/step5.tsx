@@ -4,6 +4,7 @@ import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CreditCard, Store, Package, Landmark, Info, MapPin } from 'lucide-react'
+import { CityDistrictSelect } from '../city-district-select'
 import { cn } from '@/lib/utils'
 import type { OnboardingFormData, PaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
@@ -209,14 +210,11 @@ export function Step5() {
               <Label className="text-sm font-medium text-gray-700">退貨收件人電話 <span className="text-red-500">*</span></Label>
               <Input placeholder="0912345678" className="h-10 rounded-xl bg-white" {...register('cvscom_info.return_receiver_phone')} />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">退貨郵遞區號 <span className="text-red-500">*</span></Label>
-              <Input placeholder="100" maxLength={3} className="h-10 rounded-xl bg-white" {...register('cvscom_info.return_receiver_postal_code')} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-700">退貨縣市地區 <span className="text-red-500">*</span></Label>
-              <Input placeholder="台北市中正區" className="h-10 rounded-xl bg-white" {...register('cvscom_info.return_receiver_city')} />
-            </div>
+            <CityDistrictSelect
+              postalCodeField="cvscom_info.return_receiver_postal_code"
+              cityField="cvscom_info.return_receiver_city"
+              cityLabel="退貨縣市地區"
+            />
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-sm font-medium text-gray-700">退貨地址 <span className="text-red-500">*</span></Label>
               <Input placeholder="羅斯福路二段 100 號" className="h-10 rounded-xl bg-white" {...register('cvscom_info.return_receiver_address')} />
