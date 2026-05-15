@@ -164,7 +164,34 @@ export function Step3() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-gray-700">發證地點 <span className="text-red-500">*</span></Label>
-                <Input placeholder="北市" maxLength={8} className="h-10 rounded-xl" {...register('merchant_owner_info.id_issued_place')} />
+                <select
+                  className="h-10 w-full appearance-none rounded-xl border border-input bg-background pl-3 pr-8 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/50"
+                  {...register('merchant_owner_info.id_issued_place')}
+                >
+                  <option value="">請選擇</option>
+                  <option value="北市">台北市</option>
+                  <option value="新北市">新北市</option>
+                  <option value="基市">基隆市</option>
+                  <option value="桃市">桃園市</option>
+                  <option value="竹市">新竹市</option>
+                  <option value="竹縣">新竹縣</option>
+                  <option value="苗縣">苗栗縣</option>
+                  <option value="中市">台中市</option>
+                  <option value="彰縣">彰化縣</option>
+                  <option value="投縣">南投縣</option>
+                  <option value="雲縣">雲林縣</option>
+                  <option value="嘉市">嘉義市</option>
+                  <option value="嘉縣">嘉義縣</option>
+                  <option value="南市">台南市</option>
+                  <option value="高市">高雄市</option>
+                  <option value="屏縣">屏東縣</option>
+                  <option value="宜縣">宜蘭縣</option>
+                  <option value="花縣">花蓮縣</option>
+                  <option value="東縣">台東縣</option>
+                  <option value="澎縣">澎湖縣</option>
+                  <option value="金縣">金門縣</option>
+                  <option value="連縣">連江縣</option>
+                </select>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-sm font-medium text-gray-700">領補換類別 <span className="text-red-500">*</span></Label>
