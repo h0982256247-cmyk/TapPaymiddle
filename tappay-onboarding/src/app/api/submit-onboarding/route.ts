@@ -21,10 +21,11 @@ export async function POST(request: NextRequest) {
           contact_email: body.contact_email,
           company_name: body.company_info?.company_name,
           merchant_id: body.merchant_id,
-          // 法人(E)送 vat_number；自然人(P)送 id_number，兩者不可同時存在
-          ...(body.merchant_type === 'E'
-            ? { vat_number: body.register_info?.vat_number }
-            : { id_number: body.merchant_owner_info?.sub_merchant_owner_id }),
+          // create-partner-account 只接受 vat_number（法人專用）
+          // id_number 屬於負責人資料，由 basic endpoint 處理，此處不送
+          ...(body.merchant_type === 'E' && body.register_info?.vat_number
+            ? { vat_number: body.register_info.vat_number }
+            : {}),
         }),
       }
     )

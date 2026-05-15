@@ -48,8 +48,9 @@ serve(async (req) => {
       company_name,
     }
 
+    // create-partner-account 只接受 vat_number（法人）
+    // id_number 屬於負責人資料，不在此 endpoint 送出
     if (vat_number) tappayPayload.vat_number = vat_number
-    if (id_number) tappayPayload.id_number = id_number
 
     // Call TapPay API
     const tappayResponse = await tapPayRequest(

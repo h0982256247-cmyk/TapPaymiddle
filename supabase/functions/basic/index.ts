@@ -26,6 +26,7 @@ serve(async (req) => {
     const body = await req.json()
     const {
       partner_account,
+      partner_key,
       merchant_id,
       merchant_type,
       industry_code,
@@ -42,7 +43,7 @@ serve(async (req) => {
     const tappayPayload: Record<string, unknown> = {
       platform_key: platformKey,
       partner_account,
-      pf_account: null,
+      partner_key,
       merchant_type,
       industry_code,
       company_info,
