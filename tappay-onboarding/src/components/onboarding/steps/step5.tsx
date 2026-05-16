@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw } from 'lucide-react'
+import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw, ShoppingCart } from 'lucide-react'
 import { CityDistrictSelect } from '../city-district-select'
 import { FileUpload } from '../file-upload'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,8 @@ function ShopPagePreviewModal({
   servicePhone,
   serviceEmail,
 }: ShopPagePreviewModalProps) {
+  const [cartCount, setCartCount] = useState(0)
+
   const imageUrl = useMemo(
     () => (productImage instanceof File ? URL.createObjectURL(productImage) : null),
     [productImage]
@@ -163,14 +165,36 @@ function ShopPagePreviewModal({
           </div>
         </div>
 
-        {/* 分隔線 */}
-        <div className="h-2 bg-gray-100" />
+        {/* 底部按鈕 spacer */}
+        <div className="h-20" />
 
-        {/* 頁尾 */}
-        <div className="px-4 py-5 text-center">
-          <p className="text-xs text-gray-400 leading-relaxed">
-            此頁面由 TapPay 商戶進件系統<br />自動產生，僅供審查使用
-          </p>
+        {/* 底部購物按鈕（sticky bottom，吸附在 modal 內底部） */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-3">
+          <button
+            type="button"
+            onClick={() => setCartCount((c) => c + 1)}
+            className="flex-1 h-10 rounded-xl border-2 border-gray-900 text-gray-900 text-xs font-semibold hover:bg-gray-50 transition-colors"
+          >
+            加入購物車
+          </button>
+          <button
+            type="button"
+            className="flex-1 h-10 rounded-xl bg-gray-900 text-white text-xs font-semibold hover:bg-gray-700 transition-colors"
+          >
+            立即結帳
+          </button>
+        </div>
+      </div>
+
+      {/* 浮動購物車按鈕（相對於 modal 右下） */}
+      <div className="absolute right-8 bottom-20 pointer-events-none">
+        <div className="relative w-11 h-11 rounded-full bg-gray-900 text-white shadow-lg flex items-center justify-center pointer-events-auto">
+          <ShoppingCart className="w-5 h-5" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
         </div>
       </div>
     </div>

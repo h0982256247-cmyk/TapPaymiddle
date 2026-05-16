@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Phone, Mail, RotateCcw } from 'lucide-react'
+import { ShopActions } from './shop-actions'
 
 interface ShopPage {
   partner_account: string
@@ -101,11 +102,12 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-gray-400 py-4">
-          此頁面由 TapPay 商戶進件系統自動產生，僅供審查使用
-        </p>
       </main>
+
+      <ShopActions
+        productName={shopData.product_name}
+        productPrice={shopData.product_price}
+      />
     </div>
   )
 }
