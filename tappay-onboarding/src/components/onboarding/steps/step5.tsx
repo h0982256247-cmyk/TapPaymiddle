@@ -12,7 +12,7 @@ import type { OnboardingFormData, PaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
 import { toast } from 'sonner'
 
-const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app'
+const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app').replace(/\/$/, '')
 
 // ── MCC 代碼分類 ──────────────────────────────
 const MCC_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
