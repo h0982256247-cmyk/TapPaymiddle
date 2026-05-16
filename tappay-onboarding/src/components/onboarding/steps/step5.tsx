@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon } from 'lucide-react'
+import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw } from 'lucide-react'
 import { CityDistrictSelect } from '../city-district-select'
 import { FileUpload } from '../file-upload'
 import { cn } from '@/lib/utils'
@@ -12,7 +12,170 @@ import type { OnboardingFormData, PaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
 import { toast } from 'sonner'
 
-const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app'
+const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app').replace(/\/$/, '')
+
+// ── 審查頁面預覽 Modal ─────────────────────────
+
+interface ShopPagePreviewModalProps {
+  open: boolean
+  onClose: () => void
+  brandName: string
+  vatNumber?: string
+  merchantType: string
+  productImage?: File | null
+  productName?: string
+  productPrice?: number
+  productDescription?: string
+  refundPolicy?: string
+  servicePhone?: string
+  serviceEmail?: string
+}
+
+function ShopPagePreviewModal({
+  open,
+  onClose,
+  brandName,
+  vatNumber,
+  merchantType,
+  productImage,
+  productName,
+  productPrice,
+  productDescription,
+  refundPolicy,
+  servicePhone,
+  serviceEmail,
+}: ShopPagePreviewModalProps) {
+  const imageUrl = useMemo(
+    () => (productImage instanceof File ? URL.createObjectURL(productImage) : null),
+    [productImage]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl)
+    }
+  }, [imageUrl])
+
+  useEffect(() => {
+    if (!open) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-w-sm w-full max-h-[85vh] overflow-y-auto rounded-2xl bg-gray-50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 頂部工具列 */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 rounded-t-2xl">
+          <span className="text-sm font-semibold text-gray-800">審查頁面預覽</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* 品牌 header */}
+        <div className="sticky top-[49px] z-10 px-4 py-3 bg-white border-b border-gray-100">
+          <p className="text-sm font-bold text-gray-900">
+            {brandName || <span className="text-gray-300">尚未填寫</span>}
+          </p>
+          {merchantType === 'E' && vatNumber && (
+            <p className="text-xs text-gray-500 mt-0.5">統一編號：{vatNumber}</p>
+          )}
+        </div>
+
+        {/* 商品區塊 */}
+        <div className="p-4 space-y-3">
+          {/* 商品圖片 */}
+          <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
+            {imageUrl ? (
+              <img src={imageUrl} alt="商品圖片" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs text-gray-400">尚未上傳圖片</span>
+            )}
+          </div>
+
+          {/* 商品名稱 + 售價 */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-gray-900 flex-1">
+              {productName || <span className="text-gray-300">尚未填寫</span>}
+            </p>
+            {productPrice && productPrice > 0 ? (
+              <p className="text-sm font-bold text-gray-900 flex-shrink-0">
+                NT$ {Number(productPrice).toLocaleString()}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-300 flex-shrink-0">NT$ —</p>
+            )}
+          </div>
+
+          {/* 商品描述 */}
+          <p className={`text-xs leading-relaxed whitespace-pre-wrap ${productDescription ? 'text-gray-600' : 'text-gray-300'}`}>
+            {productDescription || '尚未填寫'}
+          </p>
+        </div>
+
+        {/* 分隔線 */}
+        <div className="h-2 bg-gray-100" />
+
+        {/* 退款政策 */}
+        <div className="p-4 bg-white space-y-2">
+          <div className="flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-gray-500" />
+            <p className="text-sm font-semibold text-gray-800">退款政策</p>
+          </div>
+          <p className={`text-xs leading-relaxed whitespace-pre-wrap ${refundPolicy ? 'text-gray-600' : 'text-gray-300'}`}>
+            {refundPolicy || '尚未填寫'}
+          </p>
+        </div>
+
+        {/* 分隔線 */}
+        <div className="h-2 bg-gray-100" />
+
+        {/* 客服資訊 */}
+        <div className="p-4 bg-white space-y-3">
+          <p className="text-sm font-semibold text-gray-800">客服資訊</p>
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className={`text-xs ${servicePhone ? 'text-gray-700' : 'text-gray-300'}`}>
+              {servicePhone || '尚未填寫'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className={`text-xs ${serviceEmail ? 'text-gray-700' : 'text-gray-300'}`}>
+              {serviceEmail || '尚未填寫'}
+            </span>
+          </div>
+        </div>
+
+        {/* 分隔線 */}
+        <div className="h-2 bg-gray-100" />
+
+        {/* 頁尾 */}
+        <div className="px-4 py-5 text-center">
+          <p className="text-xs text-gray-400 leading-relaxed">
+            此頁面由 TapPay 商戶進件系統<br />自動產生，僅供審查使用
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── MCC 代碼分類 ──────────────────────────────
 const MCC_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
@@ -227,6 +390,8 @@ export function Step5() {
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
 
+  const [previewOpen, setPreviewOpen] = useState(false)
+
   const selectedMethods = watch('payment_methods') ?? []
   const onlineErrors = (errors.online_credit_card_info as Record<string, { message?: string }> | undefined) ?? {}
   const offlineErrors = (errors.offline_credit_card_info as Record<string, { message?: string }> | undefined) ?? {}
@@ -237,6 +402,13 @@ export function Step5() {
   const merchantType = watch('merchant_type')
   const brandName = watch('company_info.company_name')
   const vatNumber = watch('register_info.vat_number')
+  const productImage = watch('shop_page_info.product_image')
+  const productName = watch('shop_page_info.product_name')
+  const productPrice = watch('shop_page_info.product_price')
+  const productDescription = watch('shop_page_info.product_description')
+  const refundPolicy = watch('shop_page_info.refund_policy')
+  const servicePhone = watch('shop_page_info.service_phone')
+  const serviceEmail = watch('shop_page_info.service_email')
 
   function toggleMethod(
     current: PaymentMethod[],
@@ -392,6 +564,11 @@ export function Step5() {
                         複製
                       </button>
                     )}
+                    <button type="button"
+                      onClick={() => setPreviewOpen(true)}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex-shrink-0 font-medium">
+                      預覽
+                    </button>
                   </div>
 
                   {/* 商家資訊（auto-filled） */}
@@ -502,6 +679,21 @@ export function Step5() {
                       </div>
                     </div>
                   </div>
+
+                  <ShopPagePreviewModal
+                    open={previewOpen}
+                    onClose={() => setPreviewOpen(false)}
+                    brandName={brandName ?? ''}
+                    vatNumber={vatNumber}
+                    merchantType={merchantType ?? ''}
+                    productImage={productImage as File | null | undefined}
+                    productName={productName}
+                    productPrice={productPrice}
+                    productDescription={productDescription}
+                    refundPolicy={refundPolicy}
+                    servicePhone={servicePhone}
+                    serviceEmail={serviceEmail}
+                  />
                 </div>
               )}
             </div>
