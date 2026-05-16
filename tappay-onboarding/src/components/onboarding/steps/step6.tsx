@@ -78,7 +78,7 @@ const DOCUMENT_CONFIGS: DocumentConfig[] = [
     key: 'supporting_documents',
     label: '實體商店照片',
     hint: '至少 2 張',
-    description: '含店面外觀及收銀台',
+    description: '含店面招牌、商品展示、售價照',
     required: false,
     multiple: true,
     requiredCondition: (data) =>

@@ -238,6 +238,20 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
 
   async function onSubmit(data: OnboardingFormData) {
     if (currentStep !== TOTAL_STEPS) return
+
+    // 防呆：申請刷卡機時，實體商店照片至少 2 張
+    if (data.payment_methods?.includes('OFFLINE_CREDIT_CARD')) {
+      const docs = data.documents?.supporting_documents
+      const count = Array.isArray(docs)
+        ? docs.filter((f) => f instanceof File).length
+        : docs instanceof File ? 1 : 0
+      if (count < 2) {
+        toast.error('實體商店照片至少需要上傳 2 張（含店面招牌、商品展示、售價照）')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+    }
+
     setSubmitting(true)
     try {
       const documentUrls: Record<string, string[]> = {}
