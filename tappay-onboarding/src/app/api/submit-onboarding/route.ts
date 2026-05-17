@@ -7,6 +7,25 @@ export async function POST(request: NextRequest) {
     // 使用 service role key 呼叫 Edge Functions（不需要使用者登入）
     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+    // 法人：自動將 register_info 帶入 company_info（名稱截斷、地址補全）
+    if (body.merchant_type === 'E' && body.register_info) {
+      const ri = body.register_info as {
+        register_name?: string
+        register_name_english?: string
+        register_postal_code?: string
+        register_city?: string
+        register_address?: string
+      }
+      body.company_info = {
+        ...body.company_info,
+        company_name: (ri.register_name ?? '').slice(0, 13),
+        company_name_english: (ri.register_name_english ?? '').slice(0, 22),
+        company_postal_code: body.company_info?.company_postal_code || ri.register_postal_code,
+        company_city: body.company_info?.company_city || ri.register_city,
+        company_address: body.company_info?.company_address || ri.register_address,
+      }
+    }
+
     // 1. create-partner-account
     const createAccountRes = await fetch(
       `${SUPABASE_URL}/functions/v1/create-partner-account`,

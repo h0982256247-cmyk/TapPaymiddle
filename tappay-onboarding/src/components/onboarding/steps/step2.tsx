@@ -20,6 +20,7 @@ async function translateToEnglish(text: string): Promise<string> {
 
 export function Step2() {
   const [translating, setTranslating] = useState<Record<string, boolean>>({})
+  const [sameAddress, setSameAddress] = useState(true)
   const {
     register,
     control,
@@ -102,6 +103,44 @@ export function Step2() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyCity, companyAddress])
 
+  // 自動帶入 company_name（截斷到 13 字）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const registerName = ((watch as any)('register_info.register_name') as string) ?? ''
+  useEffect(() => {
+    if (merchantType !== 'E') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(setValue as any)('company_info.company_name', registerName.slice(0, 13), { shouldValidate: false })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerName, merchantType])
+
+  // 自動帶入 company_name_english（截斷到 22 字）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const registerNameEn = ((watch as any)('register_info.register_name_english') as string) ?? ''
+  useEffect(() => {
+    if (merchantType !== 'E') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(setValue as any)('company_info.company_name_english', registerNameEn.slice(0, 22), { shouldValidate: false })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerNameEn, merchantType])
+
+  // 自動帶入地址（sameAddress = true 時）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const registerPostal = ((watch as any)('register_info.register_postal_code') as string) ?? ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const registerCity = ((watch as any)('register_info.register_city') as string) ?? ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const registerAddress = ((watch as any)('register_info.register_address') as string) ?? ''
+  useEffect(() => {
+    if (merchantType !== 'E' || !sameAddress) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (registerPostal) (setValue as any)('company_info.company_postal_code', registerPostal, { shouldValidate: false })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (registerCity) (setValue as any)('company_info.company_city', registerCity, { shouldValidate: false })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (registerAddress) (setValue as any)('company_info.company_address', registerAddress, { shouldValidate: false })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerPostal, registerCity, registerAddress, merchantType, sameAddress])
+
   return (
     <div className="space-y-8">
       <div>
@@ -135,11 +174,21 @@ export function Step2() {
               <Label className="text-sm font-medium text-gray-700">營業登記名稱 <span className="text-red-500">*</span></Label>
               <Input placeholder="XX 股份有限公司" className="h-10 rounded-xl" {...register('register_info.register_name')} />
               {registerErrors.register_name && <p className="text-xs text-red-500">{registerErrors.register_name.message}</p>}
+              {!registerErrors.register_name && (
+                <p className="text-xs text-gray-400">
+                  對帳單顯示名稱，超過 13 字自動截斷（目前：{registerName.length} 字）
+                </p>
+              )}
             </div>
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-sm font-medium text-gray-700">登記英文名稱 <span className="text-red-500">*</span></Label>
               <Input placeholder="XX Co., Ltd." className="h-10 rounded-xl" {...register('register_info.register_name_english')} />
               {registerErrors.register_name_english && <p className="text-xs text-red-500">{registerErrors.register_name_english.message}</p>}
+              {!registerErrors.register_name_english && (
+                <p className="text-xs text-gray-400">
+                  英文對帳單名稱，超過 22 字自動截斷（目前：{registerNameEn.length} 字）
+                </p>
+              )}
             </div>
             <CityDistrictSelect
               postalCodeField="register_info.register_postal_code"
@@ -200,59 +249,107 @@ export function Step2() {
           營業資訊
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">對外營業名稱（中文）<span className="text-red-500">*</span></Label>
-            <Input placeholder="測試商店" className="h-10 rounded-xl" {...register('company_info.company_name')} />
-            {companyErrors.company_name && <p className="text-xs text-red-500">{companyErrors.company_name.message}</p>}
-            <p className="text-xs text-gray-400">持卡人對帳單顯示，請勿填寫個人姓名</p>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-gray-700">英文名稱 <span className="text-red-500">*</span></Label>
-              <button
-                type="button"
-                onClick={() => handleTranslate('company_info.company_name', 'company_info.company_name_english')}
-                disabled={translating['company_info.company_name_english']}
-                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
+          {merchantType !== 'E' && (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-gray-700">對外營業名稱（中文）<span className="text-red-500">*</span></Label>
+                <Input placeholder="測試商店" className="h-10 rounded-xl" {...register('company_info.company_name')} />
+                {companyErrors.company_name && <p className="text-xs text-red-500">{companyErrors.company_name.message}</p>}
+                <p className="text-xs text-gray-400">持卡人對帳單顯示，請勿填寫個人姓名</p>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-gray-700">英文名稱 <span className="text-red-500">*</span></Label>
+                  <button
+                    type="button"
+                    onClick={() => handleTranslate('company_info.company_name', 'company_info.company_name_english')}
+                    disabled={translating['company_info.company_name_english']}
+                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                  >
+                    {translating['company_info.company_name_english']
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Globe className="w-3 h-3" />}
+                    一鍵翻譯
+                  </button>
+                </div>
+                <Input placeholder="Test Shop" className="h-10 rounded-xl" {...register('company_info.company_name_english')} />
+                {companyErrors.company_name_english && <p className="text-xs text-red-500">{companyErrors.company_name_english.message}</p>}
+              </div>
+              <CityDistrictSelect
+                postalCodeField="company_info.company_postal_code"
+                cityField="company_info.company_city"
+                cityLabel="縣市地區"
+              />
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-sm font-medium text-gray-700">營業地址 <span className="text-red-500">*</span></Label>
+                <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('company_info.company_address')} />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-gray-700">英文地址</Label>
+                  <button
+                    type="button"
+                    onClick={() => handleTranslate(
+                      ['company_info.company_city', 'company_info.company_address', 'company_info.company_postal_code'],
+                      'company_info.company_address_english'
+                    )}
+                    disabled={translating['company_info.company_address_english']}
+                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                  >
+                    {translating['company_info.company_address_english']
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Globe className="w-3 h-3" />}
+                    一鍵翻譯
+                  </button>
+                </div>
+                <Input placeholder="100 Roosevelt Rd Sec 2" className="h-10 rounded-xl" {...register('company_info.company_address_english')} />
+              </div>
+            </>
+          )}
+
+          {merchantType === 'E' && (
+            <div className="md:col-span-2">
+              <div
+                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer"
+                onClick={() => setSameAddress(v => !v)}
               >
-                {translating['company_info.company_name_english']
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Globe className="w-3 h-3" />}
-                一鍵翻譯
-              </button>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">營業地址與登記地址相同</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {sameAddress ? '使用登記地址作為營業地址' : '點擊收合，使用登記地址'}
+                  </p>
+                </div>
+                <div className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 ${sameAddress ? 'bg-gray-900' : 'bg-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${sameAddress ? 'translate-x-5' : 'translate-x-0'}`} />
+                </div>
+              </div>
             </div>
-            <Input placeholder="Test Shop" className="h-10 rounded-xl" {...register('company_info.company_name_english')} />
-            {companyErrors.company_name_english && <p className="text-xs text-red-500">{companyErrors.company_name_english.message}</p>}
-          </div>
-          <CityDistrictSelect
-            postalCodeField="company_info.company_postal_code"
-            cityField="company_info.company_city"
-            cityLabel="縣市地區"
-          />
-          <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-sm font-medium text-gray-700">營業地址 <span className="text-red-500">*</span></Label>
-            <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('company_info.company_address')} />
-          </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-gray-700">英文地址</Label>
-              <button
-                type="button"
-                onClick={() => handleTranslate(
-                  ['company_info.company_city', 'company_info.company_address', 'company_info.company_postal_code'],
-                  'company_info.company_address_english'
-                )}
-                disabled={translating['company_info.company_address_english']}
-                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50"
-              >
-                {translating['company_info.company_address_english']
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Globe className="w-3 h-3" />}
-                一鍵翻譯
-              </button>
-            </div>
-            <Input placeholder="100 Roosevelt Rd Sec 2" className="h-10 rounded-xl" {...register('company_info.company_address_english')} />
-          </div>
+          )}
+
+          {merchantType === 'E' && !sameAddress && (
+            <>
+              <CityDistrictSelect
+                postalCodeField="company_info.company_postal_code"
+                cityField="company_info.company_city"
+                cityLabel="縣市地區（營業）"
+              />
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-sm font-medium text-gray-700">營業地址 <span className="text-red-500">*</span></Label>
+                <Input placeholder="羅斯福路二段 100 號（勿填縣市地區）" className="h-10 rounded-xl" {...register('company_info.company_address')} />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-gray-700">英文地址</Label>
+                  <button type="button" onClick={() => handleTranslate(['company_info.company_city', 'company_info.company_address', 'company_info.company_postal_code'], 'company_info.company_address_english')} disabled={translating['company_info.company_address_english']} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 disabled:opacity-50">
+                    {translating['company_info.company_address_english'] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
+                    一鍵翻譯
+                  </button>
+                </div>
+                <Input placeholder="100 Roosevelt Rd Sec 2" className="h-10 rounded-xl" {...register('company_info.company_address_english')} />
+              </div>
+            </>
+          )}
+
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-gray-700">電話區碼 <span className="text-red-500">*</span></Label>
             <Input placeholder="02" maxLength={4} className="h-10 rounded-xl" {...register('company_info.company_phone_area_code')} />
