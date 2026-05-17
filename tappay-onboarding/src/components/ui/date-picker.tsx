@@ -76,6 +76,8 @@ interface DatePickerProps {
   maxDate?: Date
 }
 
+const MONTHS_ZH = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+
 // ──────────────────────────────────────────────
 // 元件
 // ──────────────────────────────────────────────
@@ -91,10 +93,16 @@ export function DatePicker({
   maxDate = new Date(),
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'day' | 'yearMonth'>('day')
 
   // 將 schema string 轉換成 Date
   const selected: Date | undefined =
     fmt === 'roc7' ? roc7ToDate(value ?? '') : gregorian8ToDate(value ?? '')
+
+  // 控制 DayPicker 顯示的月份
+  const [calendarMonth, setCalendarMonth] = useState<Date>(selected ?? new Date())
+  // 年月選擇器顯示的年份
+  const [yearView, setYearView] = useState<number>((selected ?? new Date()).getFullYear())
 
   // 顯示用文字
   const displayText = selected
@@ -114,11 +122,25 @@ export function DatePicker({
     onChange('')
   }
 
-  // 月份導覽用的預設月份（從選取日期或今天）
-  const defaultMonth = selected ?? new Date()
+  function handleOpenChange(o: boolean) {
+    setOpen(o)
+    if (o) {
+      // 重設到選取日期或今天
+      const base = selected ?? new Date()
+      setCalendarMonth(base)
+      setYearView(base.getFullYear())
+      setViewMode('day')
+    }
+  }
+
+  function handleMonthSelect(monthIndex: number) {
+    const newMonth = new Date(yearView, monthIndex, 1)
+    setCalendarMonth(newMonth)
+    setViewMode('day')
+  }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         disabled={disabled}
         className={cn(
@@ -157,56 +179,130 @@ export function DatePicker({
           </div>
         )}
 
-        <DayPicker
-          mode="single"
-          selected={selected}
-          onSelect={handleSelect}
-          defaultMonth={defaultMonth}
-          disabled={[
-            ...(minDate ? [{ before: minDate }] : []),
-            ...(maxDate ? [{ after: maxDate }] : []),
-          ]}
-          locale={zhTW}
-          showOutsideDays
-          classNames={{
-            root: 'p-3',
-            months: 'flex flex-col',
-            month: 'space-y-2',
-            month_caption: 'flex items-center justify-between px-1 py-1',
-            caption_label: 'text-sm font-semibold text-gray-900',
-            nav: 'flex items-center gap-1',
-            button_previous: cn(
-              'inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200',
-              'text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
-            ),
-            button_next: cn(
-              'inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200',
-              'text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
-            ),
-            weeks: 'w-full border-collapse',
-            weekdays: 'flex',
-            weekday: 'w-9 text-center text-xs font-medium text-gray-400 py-1',
-            week: 'flex mt-1',
-            day: 'w-9 h-9 text-center text-sm p-0',
-            day_button: cn(
-              'w-9 h-9 rounded-lg text-sm font-normal transition-colors',
-              'hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900/20'
-            ),
-            selected: '[&>button]:bg-gray-900 [&>button]:text-white [&>button]:hover:bg-gray-800',
-            today: '[&>button]:font-bold [&>button]:text-gray-900 [&>button]:ring-1 [&>button]:ring-gray-300',
-            outside: '[&>button]:text-gray-300 [&>button]:hover:bg-gray-50',
-            disabled: '[&>button]:text-gray-200 [&>button]:cursor-not-allowed [&>button]:hover:bg-transparent',
-            hidden: 'invisible',
-          }}
-          components={{
-            Chevron: ({ orientation }) =>
-              orientation === 'left' ? (
+        {/* 年月選擇器 */}
+        {viewMode === 'yearMonth' ? (
+          <div className="p-3 w-[280px]">
+            {/* 年份導覽 */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <button
+                type="button"
+                onClick={() => setYearView(y => y - 1)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+              >
                 <ChevronLeft className="w-4 h-4" />
-              ) : (
+              </button>
+              <span className="text-sm font-semibold text-gray-900">
+                {yearView} 年
+                {fmt === 'roc7' && (
+                  <span className="text-xs text-gray-400 ml-1">（民國 {yearView - 1911} 年）</span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => setYearView(y => y + 1)}
+                disabled={maxDate ? yearView >= maxDate.getFullYear() : false}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
                 <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 月份格子 */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {MONTHS_ZH.map((m, i) => {
+                const isSelected =
+                  selected &&
+                  selected.getFullYear() === yearView &&
+                  selected.getMonth() === i
+                const isDisabled =
+                  (minDate && new Date(yearView, i + 1, 0) < minDate) ||
+                  (maxDate && new Date(yearView, i, 1) > maxDate)
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={!!isDisabled}
+                    onClick={() => handleMonthSelect(i)}
+                    className={cn(
+                      'h-9 rounded-lg text-sm font-medium transition-colors',
+                      isSelected
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-700 hover:bg-gray-100',
+                      isDisabled && 'text-gray-200 cursor-not-allowed hover:bg-transparent'
+                    )}
+                  >
+                    {m}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <DayPicker
+            mode="single"
+            selected={selected}
+            onSelect={handleSelect}
+            month={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            disabled={[
+              ...(minDate ? [{ before: minDate }] : []),
+              ...(maxDate ? [{ after: maxDate }] : []),
+            ]}
+            locale={zhTW}
+            showOutsideDays
+            classNames={{
+              root: 'p-3',
+              months: 'flex flex-col',
+              month: 'space-y-2',
+              month_caption: 'flex items-center justify-between px-1 py-1',
+              caption_label: 'text-sm font-semibold text-gray-900',
+              nav: 'flex items-center gap-1',
+              button_previous: cn(
+                'inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200',
+                'text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
               ),
-          }}
-        />
+              button_next: cn(
+                'inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200',
+                'text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
+              ),
+              weeks: 'w-full border-collapse',
+              weekdays: 'flex',
+              weekday: 'w-9 text-center text-xs font-medium text-gray-400 py-1',
+              week: 'flex mt-1',
+              day: 'w-9 h-9 text-center text-sm p-0',
+              day_button: cn(
+                'w-9 h-9 rounded-lg text-sm font-normal transition-colors',
+                'hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900/20'
+              ),
+              selected: '[&>button]:bg-gray-900 [&>button]:text-white [&>button]:hover:bg-gray-800',
+              today: '[&>button]:font-bold [&>button]:text-gray-900 [&>button]:ring-1 [&>button]:ring-gray-300',
+              outside: '[&>button]:text-gray-300 [&>button]:hover:bg-gray-50',
+              disabled: '[&>button]:text-gray-200 [&>button]:cursor-not-allowed [&>button]:hover:bg-transparent',
+              hidden: 'invisible',
+            }}
+            components={{
+              Chevron: ({ orientation }) =>
+                orientation === 'left' ? (
+                  <ChevronLeft className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                ),
+              // 月份標題改成可點擊，切換到年月選擇器
+              CaptionLabel: ({ children }) => (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setYearView(calendarMonth.getFullYear())
+                    setViewMode('yearMonth')
+                  }}
+                  className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors px-1 rounded"
+                >
+                  {children}
+                </button>
+              ),
+            }}
+          />
+        )}
       </PopoverContent>
     </Popover>
   )
