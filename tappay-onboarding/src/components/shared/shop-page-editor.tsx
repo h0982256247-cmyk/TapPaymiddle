@@ -2,32 +2,60 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Save, ExternalLink } from 'lucide-react'
+import { Save, ExternalLink, Plus, Trash2 } from 'lucide-react'
+
+interface ProductItem {
+  product_name: string
+  product_price: number
+  product_description: string
+  product_image_path?: string | null
+}
 
 interface ShopPage {
   partner_account: string
   brand_name: string
   vat_number?: string | null
-  product_name: string
-  product_price: number
-  product_description?: string | null
+  products?: ProductItem[] | null
   refund_policy: string
   service_phone: string
   service_email: string
-  product_image_path?: string | null
 }
 
 interface Props {
-  initialData: ShopPage
+  initialData: ShopPage & Record<string, unknown>
   shopUrl: string
 }
 
+function defaultProducts(data: ShopPage & Record<string, unknown>): ProductItem[] {
+  if (Array.isArray(data.products) && data.products.length > 0) return data.products as ProductItem[]
+  if (data.product_name) {
+    return [{ product_name: String(data.product_name), product_price: Number(data.product_price ?? 0), product_description: String(data.product_description ?? ''), product_image_path: (data.product_image_path as string | null) ?? null }]
+  }
+  return [{ product_name: '', product_price: 0, product_description: '', product_image_path: null }]
+}
+
 export function ShopPageEditor({ initialData, shopUrl }: Props) {
-  const [data, setData] = useState<ShopPage>(initialData)
+  const [data, setData] = useState<ShopPage>({ ...initialData, products: defaultProducts(initialData) })
   const [saving, setSaving] = useState(false)
 
   function handleChange(field: keyof ShopPage, value: string | number) {
     setData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  function handleProductChange(idx: number, field: keyof ProductItem, value: string | number) {
+    setData((prev) => {
+      const products = [...(prev.products ?? [])]
+      products[idx] = { ...products[idx], [field]: value }
+      return { ...prev, products }
+    })
+  }
+
+  function addProduct() {
+    setData((prev) => ({ ...prev, products: [...(prev.products ?? []), { product_name: '', product_price: 0, product_description: '', product_image_path: null }] }))
+  }
+
+  function removeProduct(idx: number) {
+    setData((prev) => ({ ...prev, products: (prev.products ?? []).filter((_, i) => i !== idx) }))
   }
 
   async function handleSave() {
@@ -48,19 +76,16 @@ export function ShopPageEditor({ initialData, shopUrl }: Props) {
     }
   }
 
-  const fields: { key: keyof ShopPage; label: string; type?: string; required?: boolean }[] = [
+  const baseFields: { key: keyof ShopPage; label: string; type?: string; required?: boolean; span2?: boolean }[] = [
     { key: 'brand_name', label: '品牌名稱', required: true },
     { key: 'vat_number', label: '統一編號（選填）' },
-    { key: 'product_name', label: '商品名稱', required: true },
-    { key: 'product_price', label: '商品價格', type: 'number', required: true },
-    { key: 'product_description', label: '商品描述' },
-    { key: 'refund_policy', label: '退款政策', required: true },
+    { key: 'refund_policy', label: '退款政策', required: true, span2: true },
     { key: 'service_phone', label: '客服電話', required: true },
     { key: 'service_email', label: '客服信箱', type: 'email', required: true },
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <a
           href={shopUrl}
@@ -73,13 +98,14 @@ export function ShopPageEditor({ initialData, shopUrl }: Props) {
         </a>
       </div>
 
+      {/* 基本資訊 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {fields.map(({ key, label, type, required }) => (
-          <div key={key} className={key === 'product_description' || key === 'refund_policy' ? 'sm:col-span-2' : ''}>
+        {baseFields.map(({ key, label, type, required, span2 }) => (
+          <div key={key} className={span2 ? 'sm:col-span-2' : ''}>
             <label className="block text-xs text-gray-500 mb-1">
               {label}{required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
-            {key === 'product_description' || key === 'refund_policy' ? (
+            {span2 ? (
               <textarea
                 rows={3}
                 value={String(data[key] ?? '')}
@@ -90,12 +116,70 @@ export function ShopPageEditor({ initialData, shopUrl }: Props) {
               <input
                 type={type ?? 'text'}
                 value={String(data[key] ?? '')}
-                onChange={(e) => handleChange(key, type === 'number' ? Number(e.target.value) : e.target.value)}
+                onChange={(e) => handleChange(key, e.target.value)}
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
               />
             )}
           </div>
         ))}
+      </div>
+
+      {/* 商品列表 */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">商品資訊</p>
+        {(data.products ?? []).map((product, idx) => (
+          <div key={idx} className="p-4 rounded-xl border border-gray-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">商品 {idx + 1}</span>
+              {(data.products ?? []).length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeProduct(idx)}
+                  className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600"
+                >
+                  <Trash2 className="w-3 h-3" />移除
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">商品名稱 <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={product.product_name}
+                  onChange={(e) => handleProductChange(idx, 'product_name', e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">商品價格 <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  value={product.product_price}
+                  onChange={(e) => handleProductChange(idx, 'product_price', Number(e.target.value))}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">商品描述</label>
+                <textarea
+                  rows={3}
+                  value={product.product_description}
+                  onChange={(e) => handleProductChange(idx, 'product_description', e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 resize-none"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addProduct}
+          className="flex items-center gap-2 w-full justify-center py-2.5 rounded-lg border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          新增商品
+        </button>
       </div>
 
       <button

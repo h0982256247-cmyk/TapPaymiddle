@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
-import { useFormContext, Controller } from 'react-hook-form'
+import { useState, useEffect } from 'react'
+import { useFormContext, Controller, useFieldArray } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw, ShoppingCart } from 'lucide-react'
+import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw, ShoppingCart, Plus, Trash2 } from 'lucide-react'
 import { CityDistrictSelect } from '../city-district-select'
 import { FileUpload } from '../file-upload'
 import { cn } from '@/lib/utils'
@@ -16,16 +16,20 @@ const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.
 
 // ── 審查頁面預覽 Modal ─────────────────────────
 
+interface ProductPreviewItem {
+  product_image?: File | null
+  product_name?: string
+  product_price?: number
+  product_description?: string
+}
+
 interface ShopPagePreviewModalProps {
   open: boolean
   onClose: () => void
   brandName: string
   vatNumber?: string
   merchantType: string
-  productImage?: File | null
-  productName?: string
-  productPrice?: number
-  productDescription?: string
+  products?: ProductPreviewItem[]
   refundPolicy?: string
   servicePhone?: string
   serviceEmail?: string
@@ -37,26 +41,20 @@ function ShopPagePreviewModal({
   brandName,
   vatNumber,
   merchantType,
-  productImage,
-  productName,
-  productPrice,
-  productDescription,
+  products = [],
   refundPolicy,
   servicePhone,
   serviceEmail,
 }: ShopPagePreviewModalProps) {
   const [cartCount, setCartCount] = useState(0)
 
-  const imageUrl = useMemo(
-    () => (productImage instanceof File ? URL.createObjectURL(productImage) : null),
-    [productImage]
-  )
+  const imageUrls = products.map((p) => (p.product_image instanceof File ? URL.createObjectURL(p.product_image) : null))
 
   useEffect(() => {
     return () => {
-      if (imageUrl) URL.revokeObjectURL(imageUrl)
+      imageUrls.forEach((url) => { if (url) URL.revokeObjectURL(url) })
     }
-  }, [imageUrl])
+  })
 
   useEffect(() => {
     if (!open) return
@@ -101,34 +99,38 @@ function ShopPagePreviewModal({
         </div>
 
         {/* 商品區塊 */}
-        <div className="p-4 space-y-3">
-          {/* 商品圖片 */}
-          <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
-            {imageUrl ? (
-              <img src={imageUrl} alt="商品圖片" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs text-gray-400">尚未上傳圖片</span>
-            )}
-          </div>
-
-          {/* 商品名稱 + 售價 */}
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold text-gray-900 flex-1">
-              {productName || <span className="text-gray-300">尚未填寫</span>}
-            </p>
-            {productPrice && productPrice > 0 ? (
-              <p className="text-sm font-bold text-gray-900 flex-shrink-0">
-                NT$ {Number(productPrice).toLocaleString()}
-              </p>
-            ) : (
-              <p className="text-sm text-gray-300 flex-shrink-0">NT$ —</p>
-            )}
-          </div>
-
-          {/* 商品描述 */}
-          <p className={`text-xs leading-relaxed whitespace-pre-wrap ${productDescription ? 'text-gray-600' : 'text-gray-300'}`}>
-            {productDescription || '尚未填寫'}
-          </p>
+        <div className="space-y-0">
+          {products.length === 0 ? (
+            <div className="p-4 text-xs text-gray-300">尚未新增商品</div>
+          ) : products.map((product, idx) => {
+            const imgUrl = imageUrls[idx]
+            return (
+              <div key={idx} className={`p-4 space-y-3 ${idx > 0 ? 'border-t border-gray-100' : ''}`}>
+                <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
+                  {imgUrl ? (
+                    <img src={imgUrl} alt="商品圖片" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs text-gray-400">尚未上傳圖片</span>
+                  )}
+                </div>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold text-gray-900 flex-1">
+                    {product.product_name || <span className="text-gray-300">尚未填寫</span>}
+                  </p>
+                  {product.product_price && product.product_price > 0 ? (
+                    <p className="text-sm font-bold text-gray-900 flex-shrink-0">
+                      NT$ {Number(product.product_price).toLocaleString()}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-300 flex-shrink-0">NT$ —</p>
+                  )}
+                </div>
+                <p className={`text-xs leading-relaxed whitespace-pre-wrap ${product.product_description ? 'text-gray-600' : 'text-gray-300'}`}>
+                  {product.product_description || '尚未填寫'}
+                </p>
+              </div>
+            )
+          })}
         </div>
 
         {/* 分隔線 */}
@@ -411,6 +413,7 @@ export function Step5() {
     control,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useFormContext<OnboardingFormData>()
 
@@ -426,13 +429,15 @@ export function Step5() {
   const merchantType = watch('merchant_type')
   const brandName = watch('company_info.company_name')
   const vatNumber = watch('register_info.vat_number')
-  const productImage = watch('shop_page_info.product_image')
-  const productName = watch('shop_page_info.product_name')
-  const productPrice = watch('shop_page_info.product_price')
-  const productDescription = watch('shop_page_info.product_description')
+  const products = watch('shop_page_info.products') ?? []
   const refundPolicy = watch('shop_page_info.refund_policy')
   const servicePhone = watch('shop_page_info.service_phone')
   const serviceEmail = watch('shop_page_info.service_email')
+
+  const { fields: productFields, append: appendProduct, remove: removeProduct } = useFieldArray({
+    control,
+    name: 'shop_page_info.products' as never,
+  })
 
   function toggleMethod(
     current: PaymentMethod[],
@@ -545,10 +550,13 @@ export function Step5() {
                     <button type="button"
                       onClick={() => {
                         field.onChange(true)
-                        // 自動帶入 brand_name 和 vat_number
                         setValue('shop_page_info.brand_name', brandName ?? '', { shouldValidate: false })
                         if (merchantType === 'E' && vatNumber) {
                           setValue('shop_page_info.vat_number', vatNumber, { shouldValidate: false })
+                        }
+                        const currentProducts = getValues('shop_page_info.products' as never) as unknown[]
+                        if (!currentProducts?.length) {
+                          setValue('shop_page_info.products' as never, [{ product_image: null, product_name: '', product_price: 0, product_description: '' }] as never, { shouldValidate: false })
                         }
                       }}
                       className={`flex items-center gap-2 p-3 rounded-xl border text-left text-sm transition-all
@@ -615,56 +623,90 @@ export function Step5() {
                   </div>
 
                   {/* 商品資訊 */}
-                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                  <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-4">
                     <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">② 商品資訊</h4>
-                    <div className="space-y-1">
-                      <Label className="text-xs font-medium text-gray-700">商品圖片 <span className="text-red-500">*</span></Label>
-                      <Controller
-                        name="shop_page_info.product_image"
-                        control={control}
-                        render={({ field, fieldState }) => (
-                          <FileUpload
-                            label=""
-                            hint="JPG · PNG · WEBP"
-                            required
-                            accept=".jpg,.jpeg,.png,.webp"
-                            value={field.value as File | null}
-                            onChange={field.onChange}
-                            error={fieldState.error?.message}
-                          />
-                        )}
-                      />
-                      {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_image && (
-                        <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_image?.message}</p>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-gray-700">商品名稱 <span className="text-red-500">*</span></Label>
-                        <Input placeholder="範例商品" className="h-9 rounded-lg text-sm bg-white"
-                          {...register('shop_page_info.product_name')} />
-                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_name && (
-                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_name?.message}</p>
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-gray-700">售價（NT$）<span className="text-red-500">*</span></Label>
-                        <Input type="number" min={1} placeholder="999" className="h-9 rounded-lg text-sm bg-white"
-                          {...register('shop_page_info.product_price', { valueAsNumber: true })} />
-                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_price && (
-                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_price?.message}</p>
-                        )}
-                      </div>
-                      <div className="space-y-1 md:col-span-2">
-                        <Label className="text-xs font-medium text-gray-700">商品描述 <span className="text-red-500">*</span></Label>
-                        <textarea rows={3} placeholder="詳細描述您的商品或服務內容..."
-                          className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring/50 resize-none"
-                          {...register('shop_page_info.product_description')} />
-                        {(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_description && (
-                          <p className="text-xs text-red-500">{(errors.shop_page_info as Record<string, { message?: string }> | undefined)?.product_description?.message}</p>
-                        )}
-                      </div>
-                    </div>
+
+                    {productFields.map((field, idx) => {
+                      type ShopErrors = { products?: Array<{ product_image?: { message?: string }; product_name?: { message?: string }; product_price?: { message?: string }; product_description?: { message?: string } }> }
+                      const shopErrors = errors.shop_page_info as ShopErrors | undefined
+                      const productErrors = shopErrors?.products?.[idx]
+                      return (
+                        <div key={field.id} className={`space-y-3 ${idx > 0 ? 'pt-4 border-t border-gray-100' : ''}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-500">商品 {idx + 1}</span>
+                            {productFields.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeProduct(idx)}
+                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                移除
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-gray-700">商品圖片 <span className="text-red-500">*</span></Label>
+                            <Controller
+                              name={`shop_page_info.products.${idx}.product_image` as never}
+                              control={control}
+                              render={({ field: imgField, fieldState }) => (
+                                <FileUpload
+                                  label=""
+                                  hint="JPG · PNG · WEBP"
+                                  required
+                                  accept=".jpg,.jpeg,.png,.webp"
+                                  value={imgField.value as File | null}
+                                  onChange={imgField.onChange}
+                                  error={fieldState.error?.message}
+                                />
+                              )}
+                            />
+                            {productErrors?.product_image && (
+                              <p className="text-xs text-red-500">{productErrors.product_image.message}</p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs font-medium text-gray-700">商品名稱 <span className="text-red-500">*</span></Label>
+                              <Input placeholder="範例商品" className="h-9 rounded-lg text-sm bg-white"
+                                {...register(`shop_page_info.products.${idx}.product_name` as never)} />
+                              {productErrors?.product_name && (
+                                <p className="text-xs text-red-500">{productErrors.product_name.message}</p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs font-medium text-gray-700">售價（NT$）<span className="text-red-500">*</span></Label>
+                              <Input type="number" min={1} placeholder="999" className="h-9 rounded-lg text-sm bg-white"
+                                {...register(`shop_page_info.products.${idx}.product_price` as never, { valueAsNumber: true })} />
+                              {productErrors?.product_price && (
+                                <p className="text-xs text-red-500">{productErrors.product_price.message}</p>
+                              )}
+                            </div>
+                            <div className="space-y-1 md:col-span-2">
+                              <Label className="text-xs font-medium text-gray-700">商品描述 <span className="text-red-500">*</span></Label>
+                              <textarea rows={3} placeholder="詳細描述您的商品或服務內容..."
+                                className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring/50 resize-none"
+                                {...register(`shop_page_info.products.${idx}.product_description` as never)} />
+                              {productErrors?.product_description && (
+                                <p className="text-xs text-red-500">{productErrors.product_description.message}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => appendProduct({ product_image: null, product_name: '', product_price: 0, product_description: '' } as never)}
+                      className="flex items-center gap-2 w-full justify-center py-2.5 rounded-lg border border-dashed border-gray-300 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      新增商品
+                    </button>
                   </div>
 
                   {/* 退款政策 */}
@@ -710,10 +752,7 @@ export function Step5() {
                     brandName={brandName ?? ''}
                     vatNumber={vatNumber}
                     merchantType={merchantType ?? ''}
-                    productImage={productImage as File | null | undefined}
-                    productName={productName}
-                    productPrice={productPrice}
-                    productDescription={productDescription}
+                    products={products as ProductPreviewItem[]}
                     refundPolicy={refundPolicy}
                     servicePhone={servicePhone}
                     serviceEmail={serviceEmail}

@@ -278,17 +278,23 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         }
       }
 
-      // 如果有開啟快速審查頁面，上傳商品圖片
-      let productImagePath: string | null = null
-      if (data.online_credit_card_info?.use_shop_page && data.shop_page_info?.product_image instanceof File) {
-        const file = data.shop_page_info.product_image
+      // 如果有開啟快速審查頁面，上傳所有商品圖片
+      const productImagePaths: (string | null)[] = []
+      if (data.online_credit_card_info?.use_shop_page && Array.isArray(data.shop_page_info?.products)) {
         const partnerAccount = (data.partner_account || 'anon').replace(/[^a-zA-Z0-9_-]/g, '_')
-        const safeName = (file.name || 'product').replace(/[^a-zA-Z0-9_\-.]/g, '_')
-        const filePath = `${partnerAccount}/${Date.now()}_${safeName}`
-        const { error: imgError } = await supabase.storage
-          .from('shop-images')
-          .upload(filePath, file)
-        if (!imgError) productImagePath = filePath
+        for (const [idx, product] of (data.shop_page_info.products as Array<{ product_image?: unknown }>).entries()) {
+          if (product.product_image instanceof File) {
+            const file = product.product_image
+            const safeName = (file.name || 'product').replace(/[^a-zA-Z0-9_\-.]/g, '_')
+            const filePath = `${partnerAccount}/${Date.now()}_${idx}_${safeName}`
+            const { error: imgError } = await supabase.storage
+              .from('shop-images')
+              .upload(filePath, file)
+            productImagePaths.push(imgError ? null : filePath)
+          } else {
+            productImagePaths.push(null)
+          }
+        }
       }
 
       const response = await fetch('/api/submit-onboarding', {
@@ -298,7 +304,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
           ...data,
           document_paths: documentUrls,
           merchant_id: merchantId, // 補件流程才會有值
-          product_image_path: productImagePath,
+          product_image_paths: productImagePaths,
         }),
       })
 

@@ -151,13 +151,17 @@ export const onlineCreditCardSchema = z.object({
   }
 })
 
-export const shopPageInfoSchema = z.object({
-  brand_name: z.string().min(1, '必填'),
-  vat_number: z.string().optional(),
+export const productItemSchema = z.object({
   product_image: z.any().optional(),
   product_name: z.string().min(1, '必填'),
   product_price: z.number().positive('價格必須大於 0'),
   product_description: z.string().min(1, '必填'),
+})
+
+export const shopPageInfoSchema = z.object({
+  brand_name: z.string().min(1, '必填'),
+  vat_number: z.string().optional(),
+  products: z.array(productItemSchema).min(1, '至少需要一個商品'),
   refund_policy: z.string().min(1, '必填'),
   service_phone: z.string().min(1, '必填'),
   service_email: z.string().email('請輸入有效的 Email'),
@@ -255,3 +259,4 @@ export type Step3Data = z.infer<typeof step3Schema>
 export type Step4Data = z.infer<typeof step4Schema>
 export type Step5Data = z.infer<typeof step5Schema>
 export type ShopPageInfoData = z.infer<typeof shopPageInfoSchema>
+export type ProductItemData = z.infer<typeof productItemSchema>

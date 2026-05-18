@@ -11,9 +11,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'partner_account 必填' }, { status: 400 })
     }
 
+    const productsArray = Array.isArray(fields.products) ? fields.products : undefined
+    const first = productsArray?.[0] ?? {}
+    const upsertData: Record<string, unknown> = {
+      partner_account,
+      ...fields,
+      updated_at: new Date().toISOString(),
+    }
+    if (productsArray) {
+      upsertData.products = productsArray
+      upsertData.product_name = (first as Record<string, unknown>).product_name ?? null
+      upsertData.product_price = (first as Record<string, unknown>).product_price ?? null
+      upsertData.product_description = (first as Record<string, unknown>).product_description ?? null
+    }
+
     const { error } = await supabase
       .from('merchant_shop_pages')
-      .upsert({ partner_account, ...fields, updated_at: new Date().toISOString() }, { onConflict: 'partner_account' })
+      .upsert(upsertData, { onConflict: 'partner_account' })
 
     if (error) throw error
 

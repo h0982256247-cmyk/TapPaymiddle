@@ -113,14 +113,25 @@ export async function POST(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
+      const imagePaths: (string | null)[] = Array.isArray(body.product_image_paths) ? body.product_image_paths : []
+      const productsArray = Array.isArray(shopInfo.products)
+        ? shopInfo.products.map((p: Record<string, unknown>, i: number) => ({
+            product_name: p.product_name,
+            product_price: p.product_price,
+            product_description: p.product_description,
+            product_image_path: imagePaths[i] ?? null,
+          }))
+        : []
+      const first = productsArray[0] ?? {}
       await supabaseAdmin.from('merchant_shop_pages').upsert({
         partner_account: body.partner_account,
         brand_name: shopInfo.brand_name,
         vat_number: shopInfo.vat_number ?? null,
-        product_image_path: body.product_image_path ?? null,
-        product_name: shopInfo.product_name,
-        product_price: shopInfo.product_price,
-        product_description: shopInfo.product_description ?? null,
+        products: productsArray,
+        product_image_path: (first as Record<string, unknown>).product_image_path ?? null,
+        product_name: (first as Record<string, unknown>).product_name ?? null,
+        product_price: (first as Record<string, unknown>).product_price ?? null,
+        product_description: (first as Record<string, unknown>).product_description ?? null,
         refund_policy: shopInfo.refund_policy,
         service_phone: shopInfo.service_phone,
         service_email: shopInfo.service_email,

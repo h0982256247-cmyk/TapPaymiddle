@@ -209,13 +209,17 @@ export interface OnlineCreditCardConfig {
   use_shop_page?: boolean
 }
 
-export interface ShopPageInfo {
-  brand_name: string
-  vat_number?: string
+export interface ProductItem {
   product_image?: File | null
   product_name: string
   product_price: number
   product_description: string
+}
+
+export interface ShopPageInfo {
+  brand_name: string
+  vat_number?: string
+  products: ProductItem[]
   refund_policy: string
   service_phone: string
   service_email: string
