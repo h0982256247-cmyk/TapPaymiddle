@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useFormContext, Controller, useFieldArray } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw, ShoppingCart, Plus, Trash2 } from 'lucide-react'
+import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as LinkIcon, X, Phone, Mail, RotateCcw, ShoppingCart, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { CityDistrictSelect } from '../city-district-select'
 import { FileUpload } from '../file-upload'
 import { cn } from '@/lib/utils'
@@ -46,7 +46,8 @@ function ShopPagePreviewModal({
   servicePhone,
   serviceEmail,
 }: ShopPagePreviewModalProps) {
-  const [cartCount, setCartCount] = useState(0)
+  const [quantities, setQuantities] = useState<number[]>(products.map(() => 1))
+  const [cart, setCart] = useState<{ idx: number; name: string; price: number; qty: number }[]>([])
 
   const imageUrls = products.map((p) => (p.product_image instanceof File ? URL.createObjectURL(p.product_image) : null))
 
@@ -57,6 +58,13 @@ function ShopPagePreviewModal({
   })
 
   useEffect(() => {
+    if (open) {
+      setQuantities(products.map(() => 1))
+      setCart([])
+    }
+  }, [open])
+
+  useEffect(() => {
     if (!open) return
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -64,6 +72,25 @@ function ShopPagePreviewModal({
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, onClose])
+
+  function updateQty(idx: number, delta: number) {
+    setQuantities((prev) => prev.map((q, i) => (i === idx ? Math.max(1, q + delta) : q)))
+  }
+
+  function addToCart(idx: number) {
+    const qty = quantities[idx]
+    const product = products[idx]
+    setCart((prev) => {
+      const existing = prev.find((item) => item.idx === idx)
+      if (existing) {
+        return prev.map((item) => item.idx === idx ? { ...item, qty: item.qty + qty } : item)
+      }
+      return [...prev, { idx, name: product.product_name || '(未填寫)', price: product.product_price ?? 0, qty }]
+    })
+    setQuantities((prev) => prev.map((q, i) => (i === idx ? 1 : q)))
+  }
+
+  const totalCount = cart.reduce((sum, item) => sum + item.qty, 0)
 
   if (!open) return null
 
@@ -99,35 +126,55 @@ function ShopPagePreviewModal({
         </div>
 
         {/* 商品區塊 */}
-        <div className="space-y-0">
+        <div className="p-4 space-y-4">
           {products.length === 0 ? (
-            <div className="p-4 text-xs text-gray-300">尚未新增商品</div>
+            <div className="text-xs text-gray-300">尚未新增商品</div>
           ) : products.map((product, idx) => {
             const imgUrl = imageUrls[idx]
             return (
-              <div key={idx} className={`p-4 space-y-3 ${idx > 0 ? 'border-t border-gray-100' : ''}`}>
-                <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
+              <div key={idx} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="w-full aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
                   {imgUrl ? (
                     <img src={imgUrl} alt="商品圖片" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-xs text-gray-400">尚未上傳圖片</span>
                   )}
                 </div>
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-gray-900 flex-1">
-                    {product.product_name || <span className="text-gray-300">尚未填寫</span>}
-                  </p>
-                  {product.product_price && product.product_price > 0 ? (
-                    <p className="text-sm font-bold text-gray-900 flex-shrink-0">
-                      NT$ {Number(product.product_price).toLocaleString()}
+                <div className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-gray-900 flex-1">
+                      {product.product_name || <span className="text-gray-300">尚未填寫</span>}
                     </p>
-                  ) : (
-                    <p className="text-sm text-gray-300 flex-shrink-0">NT$ —</p>
-                  )}
+                    {product.product_price && product.product_price > 0 ? (
+                      <p className="text-sm font-bold text-gray-900 flex-shrink-0">
+                        NT$ {Number(product.product_price).toLocaleString()}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-300 flex-shrink-0">NT$ —</p>
+                    )}
+                  </div>
+                  <p className={`text-xs leading-relaxed whitespace-pre-wrap ${product.product_description ? 'text-gray-600' : 'text-gray-300'}`}>
+                    {product.product_description || '尚未填寫'}
+                  </p>
+                  {/* 數量選擇 + 加入購物車 */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                      <button type="button" onClick={() => updateQty(idx, -1)}
+                        className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
+                        <ChevronLeft className="w-3 h-3" />
+                      </button>
+                      <span className="w-7 text-xs font-semibold text-gray-900 text-center">{quantities[idx]}</span>
+                      <button type="button" onClick={() => updateQty(idx, 1)}
+                        className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <button type="button" onClick={() => addToCart(idx)}
+                      className="flex-1 h-8 rounded-lg border border-gray-900 text-gray-900 text-xs font-semibold hover:bg-gray-50 transition-colors">
+                      加入購物車
+                    </button>
+                  </div>
                 </div>
-                <p className={`text-xs leading-relaxed whitespace-pre-wrap ${product.product_description ? 'text-gray-600' : 'text-gray-300'}`}>
-                  {product.product_description || '尚未填寫'}
-                </p>
               </div>
             )
           })}
@@ -167,34 +214,17 @@ function ShopPagePreviewModal({
           </div>
         </div>
 
-        {/* 底部按鈕 spacer */}
-        <div className="h-20" />
-
-        {/* 底部購物按鈕（sticky bottom，吸附在 modal 內底部） */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-3">
-          <button
-            type="button"
-            onClick={() => setCartCount((c) => c + 1)}
-            className="flex-1 h-10 rounded-xl border-2 border-gray-900 text-gray-900 text-xs font-semibold hover:bg-gray-50 transition-colors"
-          >
-            加入購物車
-          </button>
-          <button
-            type="button"
-            className="flex-1 h-10 rounded-xl bg-gray-900 text-white text-xs font-semibold hover:bg-gray-700 transition-colors"
-          >
-            立即結帳
-          </button>
-        </div>
+        {/* 底部 spacer */}
+        <div className="h-16" />
       </div>
 
       {/* 浮動購物車按鈕（相對於 modal 右下） */}
-      <div className="absolute right-8 bottom-20 pointer-events-none">
+      <div className="absolute right-8 bottom-12 pointer-events-none">
         <div className="relative w-11 h-11 rounded-full bg-gray-900 text-white shadow-lg flex items-center justify-center pointer-events-auto">
           <ShoppingCart className="w-5 h-5" />
-          {cartCount > 0 && (
+          {totalCount > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {cartCount > 99 ? '99+' : cartCount}
+              {totalCount > 99 ? '99+' : totalCount}
             </span>
           )}
         </div>
