@@ -170,14 +170,6 @@ export function DatePicker({
         side="bottom"
         className="w-auto p-0 rounded-2xl overflow-hidden"
       >
-        {/* 民國年提示 */}
-        {fmt === 'roc7' && (
-          <div className="px-4 pt-3 pb-1">
-            <p className="text-xs text-gray-400">
-              日曆顯示西元年，儲存時自動轉換為民國年格式
-            </p>
-          </div>
-        )}
 
         {/* 年月選擇器 */}
         {viewMode === 'yearMonth' ? (
@@ -192,10 +184,7 @@ export function DatePicker({
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-sm font-semibold text-gray-900">
-                {yearView} 年
-                {fmt === 'roc7' && (
-                  <span className="text-xs text-gray-400 ml-1">（民國 {yearView - 1911} 年）</span>
-                )}
+                {fmt === 'roc7' ? `民國 ${yearView - 1911} 年` : `${yearView} 年`}
               </span>
               <button
                 type="button"
@@ -287,8 +276,8 @@ export function DatePicker({
                 ) : (
                   <ChevronRight className="w-4 h-4" />
                 ),
-              // 月份標題改成可點擊，切換到年月選擇器
-              CaptionLabel: ({ children }) => (
+              // 月份標題改成可點擊，切換到年月選擇器；roc7 顯示民國年
+              CaptionLabel: () => (
                 <button
                   type="button"
                   onClick={() => {
@@ -297,7 +286,9 @@ export function DatePicker({
                   }}
                   className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors px-1 rounded"
                 >
-                  {children}
+                  {fmt === 'roc7'
+                    ? `民國 ${calendarMonth.getFullYear() - 1911} 年 ${calendarMonth.getMonth() + 1} 月`
+                    : `${calendarMonth.getFullYear()} 年 ${calendarMonth.getMonth() + 1} 月`}
                 </button>
               ),
             }}
