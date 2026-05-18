@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import { Phone, Mail, RotateCcw } from 'lucide-react'
-import { ShopActions } from './shop-actions'
+import { ShopClient } from './shop-client'
 
 interface ProductItem {
   product_name: string
@@ -66,34 +65,8 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {/* 商品卡片列表 */}
-        {products.map((product, idx) => {
-          const imageUrl = product.product_image_path
-            ? `${supabaseUrl}/storage/v1/object/public/shop-images/${product.product_image_path}`
-            : null
-          return (
-            <div key={idx} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              {imageUrl ? (
-                <div className="relative w-full aspect-video bg-gray-100">
-                  <Image src={imageUrl} alt={product.product_name} fill className="object-cover" />
-                </div>
-              ) : (
-                <div className="w-full aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                  <p className="text-gray-400 text-sm">尚未上傳商品圖片</p>
-                </div>
-              )}
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-base font-semibold text-gray-900 flex-1">{product.product_name}</h2>
-                  <p className="text-lg font-bold text-gray-900 flex-shrink-0">NT$ {Number(product.product_price).toLocaleString()}</p>
-                </div>
-                {product.product_description && (
-                  <p className="text-sm text-gray-500 mt-2 leading-relaxed">{product.product_description}</p>
-                )}
-              </div>
-            </div>
-          )
-        })}
+        {/* 商品卡片列表（含數量選擇 + 購物車，client component） */}
+        <ShopClient products={products} supabaseUrl={supabaseUrl} />
 
         {/* 退款政策 */}
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
@@ -123,10 +96,6 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
 
       </main>
 
-      <ShopActions
-        productName={products[0]?.product_name ?? ''}
-        productPrice={products[0]?.product_price ?? 0}
-      />
     </div>
   )
 }
