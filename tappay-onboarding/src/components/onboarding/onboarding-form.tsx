@@ -269,7 +269,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
             const filePath = `${partnerAccount}/${Date.now()}_${safeName}`
             const { error } = await supabase.storage
               .from('merchant-documents')
-              .upload(filePath, file, { upsert: true })
+              .upload(filePath, file)
 
             if (error) throw error
             urls.push(filePath)
@@ -287,7 +287,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         const filePath = `${partnerAccount}/${Date.now()}_${safeName}`
         const { error: imgError } = await supabase.storage
           .from('shop-images')
-          .upload(filePath, file, { upsert: true })
+          .upload(filePath, file)
         if (!imgError) productImagePath = filePath
       }
 
