@@ -439,6 +439,12 @@ export function Step5() {
     name: 'shop_page_info.products' as never,
   })
 
+  useEffect(() => {
+    if (useShopPage && productFields.length === 0) {
+      appendProduct({ product_image: null, product_name: '', product_price: 0, product_description: '' } as never)
+    }
+  }, [useShopPage])
+
   function toggleMethod(
     current: PaymentMethod[],
     method: PaymentMethod,
