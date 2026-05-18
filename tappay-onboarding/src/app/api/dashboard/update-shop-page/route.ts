@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
 
     const { error } = await supabase
       .from('merchant_shop_pages')
-      .upsert(upsertData, { onConflict: 'partner_account' })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .upsert(upsertData as any, { onConflict: 'partner_account' })
 
     if (error) throw error
 
