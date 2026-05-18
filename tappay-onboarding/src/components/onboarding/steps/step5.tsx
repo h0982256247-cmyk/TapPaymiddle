@@ -554,7 +554,7 @@ export function Step5() {
                         if (merchantType === 'E' && vatNumber) {
                           setValue('shop_page_info.vat_number', vatNumber, { shouldValidate: false })
                         }
-                        const currentProducts = getValues('shop_page_info.products' as never) as unknown[]
+                        const currentProducts = getValues('shop_page_info')?.products
                         if (!currentProducts?.length) {
                           setValue('shop_page_info.products' as never, [{ product_image: null, product_name: '', product_price: 0, product_description: '' }] as never, { shouldValidate: false })
                         }
