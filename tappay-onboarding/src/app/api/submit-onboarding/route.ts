@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
 
     const createAccountData = await createAccountRes.json()
     if (!createAccountRes.ok || createAccountData.error) {
+      // TapPay status 2201 = 帳號建立失敗，最常見原因是 partner_account 已存在
+      if (createAccountData.tappay_status === 2201) {
+        return NextResponse.json({ error: createAccountData.error, errorCode: 'ACCOUNT_EXISTS' }, { status: 409 })
+      }
       throw new Error(createAccountData.error ?? 'create-partner-account 失敗')
     }
 

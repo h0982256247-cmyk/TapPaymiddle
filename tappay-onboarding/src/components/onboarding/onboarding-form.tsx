@@ -303,13 +303,26 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
       })
 
       const result = await response.json()
+
+      // 帳號已存在：跳回第一步並在欄位顯示錯誤
+      if (result.errorCode === 'ACCOUNT_EXISTS') {
+        methods.setError('partner_account', { message: '此帳號已存在，請更換一個不同的帳號' })
+        setCurrentStep(1)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        toast.error('Partner Account 已存在，請更換後重新提交')
+        return
+      }
+
       if (!response.ok) throw new Error(result.error || '提交失敗')
 
-      // 送出成功後清除草稿
+      // 送出成功：清除草稿並重置表單回第一步
       localStorage.removeItem(LS_FORM_DATA)
       localStorage.removeItem(LS_FORM_STEP)
-      toast.success('申請已成功提交！TapPay 將於 7-10 個工作天內完成審核。')
-      router.push(`/onboarding/status?account=${encodeURIComponent(data.partner_account)}`)
+      methods.reset()
+      setCompletedSteps([])
+      setCurrentStep(1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      toast.success(`申請已成功提交！帳號：${data.partner_account}，TapPay 將於 7-10 個工作天內完成審核。`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '提交失敗，請稍後再試'
       toast.error(message)

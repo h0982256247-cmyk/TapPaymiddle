@@ -133,7 +133,7 @@ serve(async (req) => {
       })
 
       return new Response(
-        JSON.stringify({ error: tappayResponse.msg ?? 'TapPay API 失敗' }),
+        JSON.stringify({ error: tappayResponse.msg ?? 'TapPay API 失敗', tappay_status: tappayResponse.status }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
