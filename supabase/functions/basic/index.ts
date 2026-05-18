@@ -39,6 +39,21 @@ serve(async (req) => {
 
     const platformKey = getPlatformKey()
 
+    // 將 sub_merchant_owner_* 欄位名稱對應到 TapPay 期望的 merchant_owner_* 格式
+    const tappayMerchantOwnerInfo = merchant_owner_info ? {
+      is_foreigner: merchant_owner_info.is_foreigner,
+      merchant_owner_name: merchant_owner_info.sub_merchant_owner_name,
+      merchant_owner_name_english: merchant_owner_info.sub_merchant_owner_name_english,
+      merchant_owner_id: merchant_owner_info.sub_merchant_owner_id,
+      merchant_owner_birthday: merchant_owner_info.sub_merchant_owner_birthday,
+      merchant_owner_postal_code: merchant_owner_info.sub_merchant_owner_postal_code,
+      merchant_owner_city: merchant_owner_info.sub_merchant_owner_city,
+      merchant_owner_address: merchant_owner_info.sub_merchant_owner_address,
+      id_issued_date: merchant_owner_info.id_issued_date,
+      id_issued_place: merchant_owner_info.id_issued_place,
+      id_replacement_category: merchant_owner_info.id_replacement_category,
+    } : undefined
+
     // Build BASIC API payload
     const tappayPayload: Record<string, unknown> = {
       platform_key: platformKey,
@@ -48,7 +63,7 @@ serve(async (req) => {
       industry_code,
       company_info,
       contact_info,
-      merchant_owner_info,
+      merchant_owner_info: tappayMerchantOwnerInfo,
       bank_info,
     }
 
