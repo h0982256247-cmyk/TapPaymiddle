@@ -9,6 +9,7 @@ import { ArrowLeft, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import type { Merchant, MerchantBasicInfo, MerchantPaymentMethod, MerchantDocument, MerchantApiLog, MerchantNotifyLog } from '@/types/merchant'
 import { CopyField } from '@/components/shared/copy-field'
+import { ShopPageEditor } from '@/components/shared/shop-page-editor'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,13 +33,20 @@ export default async function MerchantDetailPage({
     ])
 
   const merchant = merchantRes.data as Merchant | null
+  if (!merchant) notFound()
+
+  const shopPageRes = await supabase
+    .from('merchant_shop_pages')
+    .select('*')
+    .eq('partner_account', merchant.partner_account)
+    .maybeSingle()
+
   const basicInfo = basicInfoRes.data as MerchantBasicInfo | null
   const paymentMethods = (paymentMethodsRes.data ?? []) as MerchantPaymentMethod[]
   const documents = (documentsRes.data ?? []) as MerchantDocument[]
   const apiLogs = (apiLogsRes.data ?? []) as MerchantApiLog[]
   const notifyLogs = (notifyLogsRes.data ?? []) as unknown as MerchantNotifyLog[]
-
-  if (!merchant) notFound()
+  const shopPage = shopPageRes?.data ?? null
 
   const companyInfo = basicInfo?.company_info as unknown as Record<string, unknown> | null
   const contactInfo = basicInfo?.contact_info as unknown as Record<string, unknown> | null
@@ -222,6 +230,17 @@ export default async function MerchantDetailPage({
                 </div>
               ))}
             </div>
+          </Card>
+        )}
+
+        {/* Shop Page */}
+        {shopPage && (
+          <Card className="p-5 rounded-2xl border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">快速審查頁面</h3>
+            <ShopPageEditor
+              initialData={shopPage}
+              shopUrl={`${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/shop/${merchant.partner_account}`}
+            />
           </Card>
         )}
 
