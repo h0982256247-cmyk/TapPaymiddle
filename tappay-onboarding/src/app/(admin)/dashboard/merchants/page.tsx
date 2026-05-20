@@ -41,10 +41,29 @@ export default async function MerchantsPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let query = supabase
+  const role = user?.user_metadata?.role
+  const isSuperAdmin = role === 'super_admin'
+
+  // super_admin 用 service role（無 RLS 限制），platform merchant 用自己的 session
+  const { createAdminClient } = await import('@/lib/supabase/server')
+  const queryClient = isSuperAdmin ? await createAdminClient() : supabase
+
+  let query = queryClient
     .from('merchants')
-    .select('id, partner_account, company_name, company_name_english, merchant_type, industry_code, status, tappay_status_code, tappay_opinion, submitted_at, created_at')
+    .select('id, partner_account, company_name, company_name_english, merchant_type, industry_code, status, tappay_status_code, tappay_opinion, submitted_at, created_at, platform_id')
     .order('created_at', { ascending: false })
+
+  // platform merchant 只看自己平台的商戶
+  if (!isSuperAdmin) {
+    const { data: platform } = await supabase
+      .from('platforms')
+      .select('id')
+      .eq('user_id', user!.id)
+      .maybeSingle()
+    if (platform) {
+      query = query.eq('platform_id', platform.id)
+    }
+  }
 
   if (params.status) {
     query = query.eq('status', params.status)

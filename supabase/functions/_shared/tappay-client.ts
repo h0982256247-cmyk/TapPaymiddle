@@ -10,19 +10,14 @@ export function getTapPayBaseUrl(): string {
   return env === 'production' ? TAPPAY_PROD_URL : TAPPAY_SANDBOX_URL
 }
 
-export function getPlatformKey(): string {
-  const key = Deno.env.get('TAPPAY_PLATFORM_KEY')
-  if (!key) throw new Error('TAPPAY_PLATFORM_KEY not configured')
-  return key
-}
-
 export async function tapPayRequest(
   endpoint: string,
   body: Record<string, unknown>,
-  platformKey?: string
+  platformKey: string
 ): Promise<{ status: number; msg: string; [key: string]: unknown }> {
+  if (!platformKey) throw new Error('platform_key is required')
   const baseUrl = getTapPayBaseUrl()
-  const key = platformKey ?? getPlatformKey()
+  const key = platformKey
 
   const response = await fetch(`${baseUrl}${endpoint}`, {
     method: 'POST',

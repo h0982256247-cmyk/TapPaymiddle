@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { tapPayRequest, getPlatformKey } from '../_shared/tappay-client.ts'
+import { tapPayRequest } from '../_shared/tappay-client.ts'
 import { getAdminClient, logApiCall } from '../_shared/supabase-admin.ts'
 
 const corsHeaders = {
@@ -35,9 +35,15 @@ serve(async (req) => {
       contact_info,
       merchant_owner_info,
       bank_info,
+      platform_key: bodyPlatformKey,
     } = body
 
-    const platformKey = getPlatformKey()
+    if (!bodyPlatformKey) {
+      return new Response(JSON.stringify({ error: 'platform_key is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const platformKey = bodyPlatformKey
 
     // 將 sub_merchant_owner_* 欄位名稱對應到 TapPay 期望的 merchant_owner_* 格式
     const tappayMerchantOwnerInfo = merchant_owner_info ? {

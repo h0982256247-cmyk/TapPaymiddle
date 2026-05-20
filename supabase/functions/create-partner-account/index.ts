@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { tapPayRequest, getPlatformKey } from '../_shared/tappay-client.ts'
+import { tapPayRequest } from '../_shared/tappay-client.ts'
 import { getAdminClient, logApiCall } from '../_shared/supabase-admin.ts'
 
 const corsHeaders = {
@@ -34,11 +34,18 @@ serve(async (req) => {
       vat_number,
       id_number,
       merchant_id: existingMerchantId,
+      platform_key: bodyPlatformKey,
+      platform_id: bodyPlatformId,
     } = body
 
     merchantId = existingMerchantId ?? null
 
-    const platformKey = getPlatformKey()
+    if (!bodyPlatformKey) {
+      return new Response(JSON.stringify({ error: 'platform_key is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const platformKey = bodyPlatformKey
 
     // Build TapPay payload
     const tappayPayload: Record<string, unknown> = {
@@ -82,11 +89,12 @@ serve(async (req) => {
         const { data: merchant } = await admin
           .from('merchants')
           .insert({
-            user_id: null,  // 匿名申請流程，無登入使用者
+            user_id: null,
             partner_account,
             contact_email,
             company_name,
             partner_key: partnerKey,
+            platform_id: bodyPlatformId ?? null,
             status: 'SUBMITTED',
             submitted_at: new Date().toISOString(),
           })

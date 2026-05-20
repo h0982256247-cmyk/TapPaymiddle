@@ -1,13 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    // 使用 service role key 呼叫 Edge Functions（不需要使用者登入）
     const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-    // 法人：自動將 register_info 帶入 company_info（名稱截斷、地址補全）
+    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
+
+    // 1. 從 DB 撈取 platform 資料（platform_key + platform_id）
+    const platformSlug = body.platform_slug as string | undefined
+    if (!platformSlug) {
+      return NextResponse.json({ error: '缺少 platform_slug' }, { status: 400 })
+    }
+
+    const { data: platform, error: platformError } = await supabaseAdmin
+      .from('platforms')
+      .select('id, tappay_platform_key')
+      .eq('slug', platformSlug)
+      .single()
+
+    if (platformError || !platform) {
+      return NextResponse.json({ error: '找不到對應的平台設定' }, { status: 400 })
+    }
+
+    const tappayPlatformKey = platform.tappay_platform_key
+    const platformId = platform.id
+
+    // 法人：自動將 register_info 帶入 company_info
     if (body.merchant_type === 'E' && body.register_info) {
       const ri = body.register_info as {
         register_name?: string
@@ -26,22 +47,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 1. create-partner-account
+    // 2. create-partner-account
     const createAccountRes = await fetch(
       `${SUPABASE_URL}/functions/v1/create-partner-account`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
         body: JSON.stringify({
           partner_account: body.partner_account,
           contact_email: body.contact_email,
           company_name: body.company_info?.company_name,
           merchant_id: body.merchant_id,
-          // create-partner-account 只接受 vat_number（法人專用）
-          // id_number 屬於負責人資料，由 basic endpoint 處理，此處不送
+          platform_key: tappayPlatformKey,
+          platform_id: platformId,
           ...(body.merchant_type === 'E' && body.register_info?.vat_number
             ? { vat_number: body.register_info.vat_number }
             : {}),
@@ -51,7 +69,6 @@ export async function POST(request: NextRequest) {
 
     const createAccountData = await createAccountRes.json()
     if (!createAccountRes.ok || createAccountData.error) {
-      // TapPay status 2201 = 帳號建立失敗，最常見原因是 partner_account 已存在
       if (createAccountData.tappay_status === 2201) {
         return NextResponse.json({ error: createAccountData.error, errorCode: 'ACCOUNT_EXISTS' }, { status: 409 })
       }
@@ -60,16 +77,13 @@ export async function POST(request: NextRequest) {
 
     const { partner_key, merchant_id } = createAccountData
 
-    // 2. basic
+    // 3. basic
     const basicRes = await fetch(
       `${SUPABASE_URL}/functions/v1/basic`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({ ...body, partner_key, merchant_id }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
+        body: JSON.stringify({ ...body, partner_key, merchant_id, platform_key: tappayPlatformKey }),
       }
     )
 
@@ -78,15 +92,12 @@ export async function POST(request: NextRequest) {
       throw new Error(basicData.error ?? 'basic API 失敗')
     }
 
-    // 3. additional
+    // 4. additional
     const additionalRes = await fetch(
       `${SUPABASE_URL}/functions/v1/additional`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
         body: JSON.stringify({
           partner_account: body.partner_account,
           partner_key,
@@ -96,6 +107,7 @@ export async function POST(request: NextRequest) {
           offline_credit_card_info: body.offline_credit_card_info,
           cvscom_info: body.cvscom_info,
           is_complete: !body.document_paths || Object.keys(body.document_paths).length === 0,
+          platform_key: tappayPlatformKey,
         }),
       }
     )
@@ -105,14 +117,9 @@ export async function POST(request: NextRequest) {
       throw new Error(additionalData.error ?? 'additional API 失敗')
     }
 
-    // 5. 儲存快速審查頁面資料（若有開啟）
+    // 5. 儲存快速審查頁面資料
     if (body.online_credit_card_info?.use_shop_page && body.shop_page_info) {
       const shopInfo = body.shop_page_info
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
       const imagePaths: (string | null)[] = Array.isArray(body.product_image_paths) ? body.product_image_paths : []
       const productsArray = Array.isArray(shopInfo.products)
         ? shopInfo.products.map((p: Record<string, unknown>, i: number) => ({
@@ -139,21 +146,19 @@ export async function POST(request: NextRequest) {
       }, { onConflict: 'partner_account' })
     }
 
-    // 4. qualification-file（有上傳文件才呼叫）
+    // 6. qualification-file
     if (body.document_paths && Object.keys(body.document_paths).length > 0) {
       const fileRes = await fetch(
         `${SUPABASE_URL}/functions/v1/qualification-file`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
           body: JSON.stringify({
             partner_account: body.partner_account,
             partner_key,
             merchant_id,
             document_paths: body.document_paths,
+            platform_key: tappayPlatformKey,
           }),
         }
       )

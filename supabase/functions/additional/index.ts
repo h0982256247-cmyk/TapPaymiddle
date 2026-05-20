@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { tapPayRequest, getPlatformKey } from '../_shared/tappay-client.ts'
+import { tapPayRequest } from '../_shared/tappay-client.ts'
 import { getAdminClient, logApiCall } from '../_shared/supabase-admin.ts'
 
 const corsHeaders = {
@@ -33,9 +33,15 @@ serve(async (req) => {
       offline_credit_card_info,
       cvscom_info,
       is_complete = false,
+      platform_key: bodyPlatformKey,
     } = body
 
-    const platformKey = getPlatformKey()
+    if (!bodyPlatformKey) {
+      return new Response(JSON.stringify({ error: 'platform_key is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const platformKey = bodyPlatformKey
 
     // Build ADDITIONAL API payload
     const tappayPayload: Record<string, unknown> = {

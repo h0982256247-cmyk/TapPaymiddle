@@ -5,10 +5,12 @@ export default async function RootPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
+  if (!user) redirect('/login')
+
+  const role = user.user_metadata?.role
+  if (role === 'admin' || role === 'super_admin') {
+    redirect('/dashboard')
   }
 
-  const isAdmin = user.user_metadata?.role === 'admin'
-  redirect(isAdmin ? '/dashboard' : '/onboarding')
+  redirect('/login')
 }

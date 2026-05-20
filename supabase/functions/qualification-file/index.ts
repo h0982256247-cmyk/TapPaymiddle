@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { getTapPayBaseUrl, getPlatformKey } from '../_shared/tappay-client.ts'
+import { getTapPayBaseUrl } from '../_shared/tappay-client.ts'
 import { getAdminClient, logApiCall } from '../_shared/supabase-admin.ts'
 
 const corsHeaders = {
@@ -24,9 +24,14 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { partner_account, partner_key, merchant_id, document_paths } = body
+    const { partner_account, partner_key, merchant_id, document_paths, platform_key: bodyPlatformKey } = body
 
-    const platformKey = getPlatformKey()
+    if (!bodyPlatformKey) {
+      return new Response(JSON.stringify({ error: 'platform_key is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const platformKey = bodyPlatformKey
     const baseUrl = getTapPayBaseUrl()
 
     // Build multipart/form-data for TapPay

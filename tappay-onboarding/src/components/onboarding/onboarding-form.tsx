@@ -109,9 +109,11 @@ interface OnboardingFormProps {
   initialData?: Partial<OnboardingFormData>
   initialStep?: number
   merchantId?: string
+  platformSlug?: string
+  platformName?: string
 }
 
-export function OnboardingForm({ initialData, initialStep = 1, merchantId }: OnboardingFormProps) {
+export function OnboardingForm({ initialData, initialStep = 1, merchantId, platformSlug, platformName }: OnboardingFormProps) {
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -303,8 +305,9 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
         body: JSON.stringify({
           ...data,
           document_paths: documentUrls,
-          merchant_id: merchantId, // 補件流程才會有值
+          merchant_id: merchantId,
           product_image_paths: productImagePaths,
+          platform_slug: platformSlug,
         }),
       })
 
@@ -349,7 +352,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId }: Onb
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-base font-semibold text-gray-900">TapPay 商戶進件申請</h1>
-                <p className="text-xs text-gray-400 mt-0.5">完成申請以啟用 TapPay 金流服務</p>
+                <p className="text-xs text-gray-400 mt-0.5">{platformName ? `${platformName} · ` : ''}完成申請以啟用 TapPay 金流服務</p>
               </div>
 
               <div className="flex items-center gap-2">

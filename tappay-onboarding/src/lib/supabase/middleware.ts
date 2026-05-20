@@ -3,7 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +18,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -29,7 +32,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that don't need auth
-  const publicRoutes = ['/login', '/register', '/api/webhook']
+  const publicRoutes = ['/login', '/register', '/api/webhook', '/onboarding/', '/shop/']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   if (!user && !isPublicRoute) {
@@ -38,12 +41,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Admin routes protection
+  // Dashboard routes: only admin or super_admin
   if (pathname.startsWith('/dashboard') && user) {
-    const isAdmin = user.user_metadata?.role === 'admin'
-    if (!isAdmin) {
+    const role = user.user_metadata?.role
+    if (role !== 'admin' && role !== 'super_admin') {
       const url = request.nextUrl.clone()
-      url.pathname = '/onboarding'
+      url.pathname = '/login'
       return NextResponse.redirect(url)
     }
   }

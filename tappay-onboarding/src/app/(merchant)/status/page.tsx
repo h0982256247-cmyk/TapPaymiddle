@@ -2,10 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Card } from '@/components/ui/card'
-import { CheckCircle2, Clock, AlertCircle, XCircle, Zap, RefreshCw } from 'lucide-react'
+import { CheckCircle2, Clock, AlertCircle, XCircle, Zap } from 'lucide-react'
 import type { MerchantStatus, PaymentMethod, Merchant, MerchantPaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
-import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +18,7 @@ export default async function StatusPage({
   const { account } = await searchParams
 
   if (!account) {
-    redirect('/onboarding')
+    redirect('/')
   }
 
   const supabase = await createClient()
@@ -32,7 +31,7 @@ export default async function StatusPage({
     .limit(1)
     .single() as { data: MerchantWithPayments | null }
 
-  if (!merchant) redirect('/onboarding')
+  if (!merchant) redirect('/')
 
   const paymentMethods = merchant.merchant_payment_methods ?? []
 
@@ -134,15 +133,6 @@ export default async function StatusPage({
           </div>
         </Card>
 
-        {merchant.status === 'PENDING_SUPPLEMENT' && (
-          <Link
-            href={`/onboarding/supplement?account=${merchant.partner_account}`}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            前往補件
-          </Link>
-        )}
 
         <p className="text-center text-xs text-gray-400">
           審核期間請留意 {merchant.contact_email} 的 Email 通知
