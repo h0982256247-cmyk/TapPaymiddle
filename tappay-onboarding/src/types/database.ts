@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string | null
+          platform_id: string | null
           partner_account: string
           merchant_type: 'E' | 'P' | null
           industry_code: string
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           partner_account: string
           user_id?: string | null
+          platform_id?: string | null
           merchant_type?: 'E' | 'P' | null
           industry_code?: string
           company_name?: string | null
