@@ -24,6 +24,7 @@ export type Database = {
           name: string
           slug: string
           tappay_platform_key: string
+          updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['platforms']['Insert']>
         Relationships: []

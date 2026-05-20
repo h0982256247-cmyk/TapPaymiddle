@@ -37,25 +37,20 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    let data, error
     if (myPlatform) {
-      ;({ data, error } = await admin
+      const { error } = await admin
         .from('platforms')
         .update({ name, slug, tappay_platform_key, updated_at: new Date().toISOString() })
         .eq('id', myPlatform.id)
-        .select('id, name, slug')
-        .single())
+      if (error) throw error
     } else {
-      ;({ data, error } = await admin
+      const { error } = await admin
         .from('platforms')
         .insert({ user_id: user.id, name, slug, tappay_platform_key })
-        .select('id, name, slug')
-        .single())
+      if (error) throw error
     }
 
-    if (error) throw error
-
-    return NextResponse.json({ success: true, platform: data })
+    return NextResponse.json({ success: true, platform: { name, slug } })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal error'
     return NextResponse.json({ error: message }, { status: 500 })
