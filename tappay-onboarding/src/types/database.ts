@@ -9,6 +9,25 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      platforms: {
+        Row: {
+          id: string
+          user_id: string | null
+          name: string
+          slug: string
+          tappay_platform_key: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id?: string | null
+          name: string
+          slug: string
+          tappay_platform_key: string
+        }
+        Update: Partial<Database['public']['Tables']['platforms']['Insert']>
+        Relationships: []
+      }
       merchants: {
         Row: {
           id: string
