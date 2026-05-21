@@ -41,9 +41,10 @@ export default function LoginPage() {
       if (error) throw error
 
       const { data: { user } } = await supabase.auth.getUser()
-      const isAdmin = user?.user_metadata?.role === 'admin'
+      const role = user?.user_metadata?.role
+      const isDashboardUser = role === 'admin' || role === 'super_admin'
 
-      router.push(isAdmin ? '/dashboard' : '/onboarding')
+      router.push(isDashboardUser ? '/dashboard' : '/')
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '登入失敗，請確認帳密'
