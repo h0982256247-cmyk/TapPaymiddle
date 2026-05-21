@@ -27,7 +27,7 @@ serve(async (req) => {
     }
 
     const payload: TapPayNotifyPayload = await req.json()
-    const { partner_account, status_code, status, payment_method, merchant_ids } = payload
+    const { partner_account, status_code, status, payment_method, merchant_ids, opinion } = payload
 
     // Find merchant by partner_account and verify partner_key
     const { data: merchant, error: merchantError } = await admin
@@ -58,6 +58,7 @@ serve(async (req) => {
     await admin.from('merchants').update({
       status: newStatus,
       tappay_status_code: status_code,
+      tappay_opinion: opinion ?? null,
       updated_at: new Date().toISOString(),
     }).eq('id', merchant.id)
 

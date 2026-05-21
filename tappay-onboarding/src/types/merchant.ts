@@ -259,6 +259,7 @@ export interface TapPayNotifyPayload {
   status_code: TapPayStatusCode
   status: string
   payment_method: string
+  opinion?: string | null
   merchant_ids?: string[]
   merchant_id_to_tid?: Array<{ merchant_id: string; tid: string }> | null
   fee_domestic?: number | null
