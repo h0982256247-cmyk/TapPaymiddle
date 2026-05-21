@@ -33,7 +33,8 @@ export const step1Schema = z.object({
 export const registerInfoSchema = z.object({
   vat_number: z.string().length(8, '統一編號須為 8 碼'),
   register_name: z.string().min(1, '必填').max(30),
-  register_name_english: z.string().min(1, '必填').max(100),
+  register_name_english: z.string().min(1, '必填').max(100)
+    .regex(/^[A-Za-z0-9\s\.\,\-\(\)&]+$/, '請輸入英文公司名稱'),
   register_postal_code: z.string().length(3, '郵遞區號須為 3 碼'),
   register_city: cityDistrictField,
   register_address: z.string().min(1, '必填').max(26),
@@ -46,7 +47,8 @@ export const registerInfoSchema = z.object({
 
 export const companyInfoSchema = z.object({
   company_name: z.string().min(1, '必填').max(13),
-  company_name_english: z.string().min(1, '必填').max(22),
+  company_name_english: z.string().min(1, '必填').max(22)
+    .regex(/^[A-Za-z0-9\s\.\,\-\(\)&]+$/, '請輸入英文公司名稱'),
   company_postal_code: z.string().length(3, '郵遞區號須為 3 碼'),
   company_city: cityDistrictField,
   company_address: z.string().min(1, '必填').max(26),
@@ -85,8 +87,12 @@ export const contactInfoSchema = z.object({
 
 export const merchantOwnerInfoSchema = z.object({
   is_foreigner: z.boolean(),
-  sub_merchant_owner_name: z.string().min(1, '必填').max(10),
-  sub_merchant_owner_name_english: z.string().min(1, '必填').max(50),
+  sub_merchant_owner_name: z.string().min(2, '姓名至少 2 個字').max(10),
+  sub_merchant_owner_name_english: z
+    .string()
+    .min(2, '英文姓名至少 2 個字元')
+    .max(50)
+    .regex(/^[A-Za-z\s\-']+$/, '請輸入英文姓名（如：Wang Xiao Ming）'),
   sub_merchant_owner_id: z.string().min(1, '必填').max(10),
   sub_merchant_owner_birthday: z
     .string()
