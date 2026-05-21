@@ -52,7 +52,7 @@ export const companyInfoSchema = z.object({
   company_address: z.string().min(1, '必填').max(26),
   company_address_english: z.string().max(130).optional(),
   company_phone_area_code: z.string().min(1, '必填').max(4),
-  company_phone: z.string().min(1, '必填').max(15),
+  company_phone: z.string().min(7, '電話號碼至少 7 碼').max(15),
   company_fax_area_code: z.string().max(4).optional(),
   company_fax: z.string().max(15).optional(),
   is_chain_store: z.boolean(),
@@ -75,7 +75,7 @@ export const step2Schema = z.object({
 export const contactInfoSchema = z.object({
   business_contact_name: z.string().min(1, '必填').max(10),
   business_contact_phone_area_code: z.string().min(1, '必填').max(4),
-  business_contact_phone: z.string().min(1, '必填').max(15),
+  business_contact_phone: z.string().min(7, '電話號碼至少 7 碼').max(15),
   accounting_contact_email: z.string().email('請輸入有效 Email'),
   accounting_contact_name: z.string().max(10).optional(),
   accounting_contact_phone_area_code: z.string().max(4).optional(),

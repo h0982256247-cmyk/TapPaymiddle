@@ -352,11 +352,16 @@ export function Step2() {
 
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-gray-700">電話區碼 <span className="text-red-500">*</span></Label>
-            <Input placeholder="02" maxLength={4} className="h-10 rounded-xl" {...register('company_info.company_phone_area_code')} />
+            <Input placeholder="02 或 09" maxLength={4} className="h-10 rounded-xl" {...register('company_info.company_phone_area_code')} />
+            <p className="text-xs text-gray-400">市話填區碼（如 02），手機填 09</p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-gray-700">電話號碼 <span className="text-red-500">*</span></Label>
             <Input placeholder="23456789" maxLength={15} className="h-10 rounded-xl" {...register('company_info.company_phone')} />
+            {errors.company_info?.company_phone && (
+              <p className="text-xs text-red-500">{errors.company_info.company_phone.message}</p>
+            )}
+            <p className="text-xs text-gray-400">不含區碼，至少 7 碼（手機：09 區碼 + 此處填 8 碼，如 42434213）</p>
           </div>
 
           {/* Chain Store */}
