@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,6 +23,7 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const {
     register,
@@ -33,6 +33,7 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginData) {
     setLoading(true)
+    setErrorMsg(null)
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -48,6 +49,7 @@ export default function LoginPage() {
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '登入失敗，請確認帳密'
+      setErrorMsg(message)
       toast.error(message)
     } finally {
       setLoading(false)
@@ -117,6 +119,12 @@ export default function LoginPage() {
               )}
             </div>
 
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
+                {errorMsg}
+              </div>
+            )}
+
             <Button
               type="submit"
               disabled={loading}
@@ -134,12 +142,6 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-sm text-gray-400 mt-6">
-          還沒有帳號？{' '}
-          <Link href="/register" className="text-gray-700 font-medium hover:underline">
-            立即申請
-          </Link>
-        </p>
       </div>
     </div>
   )
