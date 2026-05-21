@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useTransition, useState } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -11,6 +12,7 @@ import {
   LogOut,
   ChevronRight,
   Zap,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -48,6 +50,13 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [isPending, startTransition] = useTransition()
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
+
+  // 頁面切換完成後清除 pending 狀態
+  if (pendingHref && (pathname === pendingHref || pathname.startsWith(pendingHref + '/'))) {
+    setPendingHref(null)
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -75,22 +84,33 @@ export function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isLoading = isPending && pendingHref === item.href
+          const isHighlighted = isActive || isLoading
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => {
+                if (!isActive) {
+                  setPendingHref(item.href)
+                  startTransition(() => {})
+                }
+              }}
               className={cn(
                 'group flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-150',
-                isActive
+                isHighlighted
                   ? 'bg-gray-100 text-gray-900 font-medium'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
               )}
             >
               <div className="flex items-center gap-2.5">
-                <Icon className={cn('w-4 h-4', isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600')} />
+                {isLoading
+                  ? <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                  : <Icon className={cn('w-4 h-4', isHighlighted ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600')} />
+                }
                 {item.label}
               </div>
-              {isActive && <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
+              {isHighlighted && !isLoading && <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
             </Link>
           )
         })}
