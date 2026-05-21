@@ -49,7 +49,8 @@ export type DocumentType =
 
 export interface Merchant {
   id: string
-  user_id: string
+  user_id: string | null
+  platform_id?: string | null
   partner_account: string
   merchant_type: MerchantType | null
   industry_code: IndustryCode
