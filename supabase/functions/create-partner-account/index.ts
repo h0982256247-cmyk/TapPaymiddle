@@ -62,7 +62,8 @@ serve(async (req) => {
     // Call TapPay API
     const tappayResponse = await tapPayRequest(
       '/platform/create-partner-account',
-      tappayPayload
+      tappayPayload,
+      platformKey
     )
 
     const duration = Date.now() - startTime
