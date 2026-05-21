@@ -46,7 +46,8 @@ export default async function MerchantDetailPage({
   const documents = (documentsRes.data ?? []) as MerchantDocument[]
   const apiLogs = (apiLogsRes.data ?? []) as MerchantApiLog[]
   const notifyLogs = (notifyLogsRes.data ?? []) as unknown as MerchantNotifyLog[]
-  const shopPage = shopPageRes?.data ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shopPage = (shopPageRes?.data ?? null) as any
 
   const companyInfo = basicInfo?.company_info as unknown as Record<string, unknown> | null
   const contactInfo = basicInfo?.contact_info as unknown as Record<string, unknown> | null

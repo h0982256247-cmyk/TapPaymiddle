@@ -218,6 +218,40 @@ export type Database = {
           }
         ]
       }
+      merchant_shop_pages: {
+        Row: {
+          id: string
+          partner_account: string
+          brand_name: string
+          vat_number: string | null
+          products: Json | null
+          product_image_path: string | null
+          product_name: string | null
+          product_price: number | null
+          product_description: string | null
+          refund_policy: string
+          service_phone: string
+          service_email: string
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          partner_account: string
+          brand_name: string
+          vat_number?: string | null
+          products?: Json | null
+          product_image_path?: string | null
+          product_name?: string | null
+          product_price?: number | null
+          product_description?: string | null
+          refund_policy: string
+          service_phone: string
+          service_email: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['merchant_shop_pages']['Insert']>
+        Relationships: []
+      }
       merchant_supplements: {
         Row: {
           id: string
