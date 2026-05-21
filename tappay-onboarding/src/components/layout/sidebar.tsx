@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useTransition, useState } from 'react'
+import { useTransition, useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 const navItems = [
   {
@@ -54,9 +53,11 @@ export function Sidebar() {
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
   // 頁面切換完成後清除 pending 狀態
-  if (pendingHref && (pathname === pendingHref || pathname.startsWith(pendingHref + '/'))) {
-    setPendingHref(null)
-  }
+  useEffect(() => {
+    if (pendingHref && (pathname === pendingHref || pathname.startsWith(pendingHref + '/'))) {
+      setPendingHref(null)
+    }
+  }, [pathname, pendingHref])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
