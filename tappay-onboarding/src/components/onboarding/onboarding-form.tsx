@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm, FormProvider } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { StepIndicator } from './step-indicator'
@@ -113,6 +114,7 @@ interface OnboardingFormProps {
 }
 
 export function OnboardingForm({ initialData, initialStep = 1, merchantId, platformSlug, platformName }: OnboardingFormProps) {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -333,14 +335,10 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
 
       if (!response.ok) throw new Error(result.error || '提交失敗')
 
-      // 送出成功：清除草稿並重置表單回第一步
+      // 送出成功：清除草稿並導向狀態頁
       localStorage.removeItem(LS_FORM_DATA)
       localStorage.removeItem(LS_FORM_STEP)
-      methods.reset()
-      setCompletedSteps([])
-      setCurrentStep(1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-      toast.success(`申請已成功提交！帳號：${data.partner_account}，TapPay 將於 7-10 個工作天內完成審核。`)
+      router.push(`/status?account=${data.partner_account}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '提交失敗，請稍後再試'
       toast.error(message)
