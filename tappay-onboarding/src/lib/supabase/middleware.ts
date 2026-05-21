@@ -41,6 +41,16 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Already logged-in admin/super_admin visiting /login → send to dashboard
+  if ((pathname === '/login' || pathname === '/') && user) {
+    const role = user.user_metadata?.role
+    if (role === 'admin' || role === 'super_admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Dashboard routes: only admin or super_admin
   if (pathname.startsWith('/dashboard') && user) {
     const role = user.user_metadata?.role
