@@ -42,7 +42,8 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/onboarding`,
+          data: { role: 'admin' },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings`,
         },
       })
       if (error) throw error
