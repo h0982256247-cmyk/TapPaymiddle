@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { StepIndicator } from './step-indicator'
@@ -21,7 +21,6 @@ import type { OnboardingFormData } from '@/types/merchant'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, Loader2, Save, Send, AlertCircle, X, RotateCcw } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 
 const STEP_SCHEMAS = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema, null]
 const STEP_COMPONENTS = [Step1, Step2, Step3, Step4, Step5, Step6]
@@ -117,12 +116,13 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
   const [currentStep, setCurrentStep] = useState(initialStep)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [hasSavedDraft, setHasSavedDraft] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const currentStepRef = useRef(currentStep)
 
   const methods = useForm<OnboardingFormData>({
     defaultValues: { ...DEFAULT_VALUES, ...initialData },
@@ -130,6 +130,9 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
   })
 
   const { handleSubmit: rhfHandleSubmit, trigger, getValues, reset } = methods
+
+  // 保持 ref 與 state 同步，供 auto-save interval 讀取
+  useEffect(() => { currentStepRef.current = currentStep }, [currentStep])
 
   // ── 頁面載入：從 localStorage 恢復草稿 ──
   useEffect(() => {
@@ -164,7 +167,20 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
     }
   }, [])
 
-  // ── 自動暫存：每 30 秒存一次 localStorage ──
+  // ── 儲存到 localStorage（不打 DB）──
+  const saveToLocalStorage = useCallback((showToast = true) => {
+    try {
+      const data = getValues()
+      localStorage.setItem(LS_FORM_DATA, JSON.stringify(data))
+      localStorage.setItem(LS_FORM_STEP, String(currentStepRef.current))
+      setHasSavedDraft(true)
+      if (showToast) toast.success('草稿已暫存到瀏覽器')
+    } catch {
+      if (showToast) toast.error('暫存失敗，請確認瀏覽器儲存空間')
+    }
+  }, [getValues])
+
+  // ── 自動暫存：每 30 秒存一次 localStorage（不因換步驟重置計時器）──
   useEffect(() => {
     autoSaveRef.current = setInterval(() => {
       saveToLocalStorage(false)
@@ -172,20 +188,7 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
     return () => {
       if (autoSaveRef.current) clearInterval(autoSaveRef.current)
     }
-  }, [currentStep])
-
-  // ── 儲存到 localStorage（不打 DB）──
-  function saveToLocalStorage(showToast = true) {
-    try {
-      const data = getValues()
-      localStorage.setItem(LS_FORM_DATA, JSON.stringify(data))
-      localStorage.setItem(LS_FORM_STEP, String(currentStep))
-      setHasSavedDraft(true)
-      if (showToast) toast.success('草稿已暫存到瀏覽器')
-    } catch {
-      if (showToast) toast.error('暫存失敗，請確認瀏覽器儲存空間')
-    }
-  }
+  }, [saveToLocalStorage])
 
   // ── 清除所有草稿並重設表單 ──
   function handleReset() {
@@ -202,27 +205,33 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
   }
 
   async function handleNext() {
-    const schema = STEP_SCHEMAS[currentStep - 1]
+    if (isNavigating) return
+    setIsNavigating(true)
+    try {
+      const schema = STEP_SCHEMAS[currentStep - 1]
 
-    if (schema) {
-      const currentData = getValues()
-      const result = schema.safeParse(currentData)
+      if (schema) {
+        const currentData = getValues()
+        const result = schema.safeParse(currentData)
 
-      if (!result.success) {
-        await trigger()
-        const errors = extractZodErrors(result.error as Parameters<typeof extractZodErrors>[0])
-        setValidationErrors(errors)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-        return
+        if (!result.success) {
+          await trigger()
+          const errors = extractZodErrors(result.error as Parameters<typeof extractZodErrors>[0])
+          setValidationErrors(errors)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
       }
-    }
 
-    // 驗證通過：自動暫存當前進度
-    saveToLocalStorage(false)
-    setValidationErrors([])
-    setCompletedSteps((prev) => [...new Set([...prev, currentStep])])
-    setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+      // 驗證通過：自動暫存當前進度
+      saveToLocalStorage(false)
+      setValidationErrors([])
+      setCompletedSteps((prev) => [...new Set([...prev, currentStep])])
+      setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      setIsNavigating(false)
+    }
   }
 
   function handleBack() {
@@ -425,10 +434,10 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
                   <Button
                     type="button"
                     onClick={handleNext}
+                    disabled={isNavigating}
                     className="h-10 rounded-xl bg-gray-900 hover:bg-gray-800 text-white gap-2 px-6"
                   >
-                    下一步
-                    <ArrowRight className="w-4 h-4" />
+                    {isNavigating ? <Loader2 className="w-4 h-4 animate-spin" /> : <>下一步<ArrowRight className="w-4 h-4" /></>}
                   </Button>
                 )}
               </div>

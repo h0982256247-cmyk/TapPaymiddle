@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
-  FileText,
   Activity,
   Bell,
   Settings,
@@ -37,11 +36,6 @@ const navItems = [
     label: 'Notify 紀錄',
     href: '/dashboard/notify-logs',
     icon: Bell,
-  },
-  {
-    label: '文件管理',
-    href: '/dashboard/documents',
-    icon: FileText,
   },
   {
     label: '設定',

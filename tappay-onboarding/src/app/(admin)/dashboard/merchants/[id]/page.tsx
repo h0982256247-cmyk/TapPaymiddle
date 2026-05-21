@@ -186,11 +186,11 @@ export default async function MerchantDetailPage({
           {/* Payment Methods */}
           <Card className="p-5 rounded-2xl border-gray-200 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">支付方式</h3>
-            {(paymentMethods ?? []).length === 0 ? (
+            {paymentMethods.length === 0 ? (
               <p className="text-xs text-gray-400">尚無申請</p>
             ) : (
               <div className="space-y-2">
-                {(paymentMethods ?? []).map((pm) => (
+                {paymentMethods.map((pm) => (
                   <div key={pm.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                     <div>
                       <p className="text-sm text-gray-900">
@@ -213,11 +213,11 @@ export default async function MerchantDetailPage({
         </div>
 
         {/* Documents */}
-        {(documents ?? []).length > 0 && (
+        {documents.length > 0 && (
           <Card className="p-5 rounded-2xl border-gray-200 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">已上傳文件</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {(documents ?? []).map((doc) => (
+              {documents.map((doc) => (
                 <div key={doc.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                   <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
                     <span className="text-xs">📄</span>
@@ -246,7 +246,7 @@ export default async function MerchantDetailPage({
         )}
 
         {/* API Logs */}
-        {(apiLogs ?? []).length > 0 && (
+        {apiLogs.length > 0 && (
           <Card className="rounded-2xl border-gray-200 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900">API 呼叫紀錄</h3>
@@ -255,7 +255,7 @@ export default async function MerchantDetailPage({
               </Link>
             </div>
             <div className="divide-y divide-gray-50">
-              {(apiLogs ?? []).map((log) => (
+              {apiLogs.map((log) => (
                 <div key={log.id} className="px-5 py-3 flex items-center gap-4">
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${log.is_success ? 'bg-green-400' : 'bg-red-400'}`} />
                   <span className="text-sm font-mono text-gray-700 w-48 truncate">{log.api_name}</span>
@@ -271,13 +271,13 @@ export default async function MerchantDetailPage({
         )}
 
         {/* Notify Logs */}
-        {(notifyLogs ?? []).length > 0 && (
+        {notifyLogs.length > 0 && (
           <Card className="rounded-2xl border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900">Notify 紀錄</h3>
             </div>
             <div className="divide-y divide-gray-50">
-              {(notifyLogs ?? []).map((log) => (
+              {notifyLogs.map((log) => (
                 <div key={log.id} className="px-5 py-3 flex items-center gap-4">
                   <StatusBadge
                     status={(['SUBMITTED','PENDING_SUPPLEMENT','SUPPLEMENTED','UNDER_REVIEW','APPROVED','REJECTED','DISABLED','MERCHANT_CREATED'].includes(log.status ?? '') ? log.status : 'DRAFT') as MerchantStatus}
