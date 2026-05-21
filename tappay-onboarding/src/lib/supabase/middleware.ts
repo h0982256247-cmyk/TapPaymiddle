@@ -41,7 +41,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Already logged-in admin/super_admin visiting /login → send to dashboard
+  // Already logged-in admin/super_admin visiting /login or / → send to dashboard
   if ((pathname === '/login' || pathname === '/') && user) {
     const role = user.user_metadata?.role
     if (role === 'admin' || role === 'super_admin') {
@@ -49,6 +49,11 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
+  }
+
+  // Prevent redirect loops: if already heading to /login, just pass through
+  if (pathname === '/login') {
+    return supabaseResponse
   }
 
   // Dashboard routes: only admin or super_admin
