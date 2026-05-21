@@ -69,7 +69,8 @@ serve(async (req) => {
       industry_code,
       company_info,
       contact_info,
-      merchant_owner_info: tappayMerchantOwnerInfo,
+      // 法人 (E) 必須送 null；自然人 (P) 才送負責人資訊
+      merchant_owner_info: merchant_type === 'E' ? null : tappayMerchantOwnerInfo,
       bank_info,
     }
 
