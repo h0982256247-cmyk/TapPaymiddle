@@ -14,8 +14,8 @@ export const step1Schema = z.object({
   partner_account: z
     .string()
     .min(4, '帳號至少 4 個字元')
-    .max(32, '帳號最多 32 個字元')
-    .regex(/^[a-zA-Z0-9_-]+$/, '帳號只能包含英文、數字、底線、連字號'),
+    .max(16, '帳號最多 16 個字元')
+    .regex(/^[a-zA-Z0-9]+$/, '帳號只能包含英文字母與數字'),
   contact_email: z.string().email('請輸入有效的 Email'),
   merchant_type: z.enum(['E', 'P'], { error: '請選擇商家類型' }),
   industry_code: z.enum([

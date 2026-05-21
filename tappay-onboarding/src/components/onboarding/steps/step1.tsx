@@ -45,7 +45,7 @@ export function Step1() {
             {errors.partner_account && (
               <p className="text-xs text-red-500">{errors.partner_account.message}</p>
             )}
-            <p className="text-xs text-gray-400">英文、數字、底線、連字號，4-32 字元</p>
+            <p className="text-xs text-gray-400">英文字母與數字，4–16 字元</p>
           </div>
 
           <div className="space-y-1.5">
