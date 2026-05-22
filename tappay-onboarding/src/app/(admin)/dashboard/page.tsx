@@ -34,6 +34,31 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const role = user?.user_metadata?.role
+  const isSuperAdmin = role === 'super_admin'
+
+  // super_admin 用 service role（無 RLS 限制），platform merchant 用自己的 session
+  const { createAdminClient } = await import('@/lib/supabase/server')
+  const queryClient = isSuperAdmin ? await createAdminClient() : supabase
+
+  // no-role 用戶：取得自己的 platform_id 做 filter
+  let platformId: string | null = null
+  if (!isSuperAdmin) {
+    const { data: platform } = await supabase
+      .from('platforms')
+      .select('id')
+      .eq('user_id', user!.id)
+      .maybeSingle()
+    platformId = platform?.id ?? null
+  }
+
+  const buildMerchantQuery = (status?: string) => {
+    let q = queryClient.from('merchants').select('*', { count: 'exact', head: true })
+    if (!isSuperAdmin && platformId) q = q.eq('platform_id', platformId)
+    if (status) q = q.eq('status', status)
+    return q
+  }
+
   // Stats queries in parallel
   const [
     { count: total },
@@ -43,11 +68,15 @@ export default async function DashboardPage() {
     { data: recentMerchants },
     { count: apiLogs },
   ] = await Promise.all([
-    supabase.from('merchants').select('*', { count: 'exact', head: true }),
-    supabase.from('merchants').select('*', { count: 'exact', head: true }).eq('status', 'UNDER_REVIEW'),
-    supabase.from('merchants').select('*', { count: 'exact', head: true }).eq('status', 'APPROVED'),
-    supabase.from('merchants').select('*', { count: 'exact', head: true }).eq('status', 'PENDING_SUPPLEMENT'),
-    supabase.from('merchants').select('id, partner_account, company_name, status, created_at').order('created_at', { ascending: false }).limit(8) as unknown as Promise<{ data: Array<{ id: string; partner_account: string; company_name: string | null; status: string; created_at: string }> | null }>,
+    buildMerchantQuery(),
+    buildMerchantQuery('UNDER_REVIEW'),
+    buildMerchantQuery('APPROVED'),
+    buildMerchantQuery('PENDING_SUPPLEMENT'),
+    (() => {
+      let q = queryClient.from('merchants').select('id, partner_account, company_name, status, created_at').order('created_at', { ascending: false }).limit(8)
+      if (!isSuperAdmin && platformId) q = q.eq('platform_id', platformId)
+      return q
+    })() as unknown as Promise<{ data: Array<{ id: string; partner_account: string; company_name: string | null; status: string; created_at: string }> | null }>,
     supabase.from('merchant_api_logs').select('*', { count: 'exact', head: true }),
   ])
 

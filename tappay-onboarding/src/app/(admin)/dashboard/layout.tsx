@@ -17,10 +17,9 @@ export default async function DashboardLayout({
     if (!user) redirect('/login')
 
     const role = user.user_metadata?.role
-    if (role !== 'admin' && role !== 'super_admin') redirect('/login')
 
-    // platform merchant 尚未完成設定時，強制導向設定頁
-    if (role === 'admin') {
+    // super_admin 以外的使用者（no role）需要先設定平台
+    if (role !== 'super_admin') {
       const headersList = await headers()
       const pathname = headersList.get('x-pathname') ?? ''
       if (!pathname.startsWith('/dashboard/settings')) {

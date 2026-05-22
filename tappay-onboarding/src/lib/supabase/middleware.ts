@@ -41,14 +41,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Already logged-in admin/super_admin visiting /login or / → send to dashboard
+  // 已登入者造訪 /login 或 / → 直接進 dashboard
   if ((pathname === '/login' || pathname === '/') && user) {
-    const role = user.user_metadata?.role
-    if (role === 'admin' || role === 'super_admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   // Prevent redirect loops: if already heading to /login, just pass through
@@ -56,15 +53,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Dashboard routes: only admin or super_admin
-  if (pathname.startsWith('/dashboard') && user) {
-    const role = user.user_metadata?.role
-    if (role !== 'admin' && role !== 'super_admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-  }
+  // Dashboard routes: 任何已登入者皆可進入（super_admin 或 no role）
 
   return supabaseResponse
 }
