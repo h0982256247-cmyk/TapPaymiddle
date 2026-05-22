@@ -31,24 +31,22 @@ export async function proxy(request: NextRequest) {
   // セッション更新（必須 — これがないと server component でセッションが読めない）
   const { data: { user } } = await supabase.auth.getUser()
 
-  const role = user?.user_metadata?.role as string | undefined
-  const isDashboardUser = role === 'admin' || role === 'super_admin'
-
-  // ログイン済みで /login にアクセス → ダッシュボードへ
-  if (pathname === '/login' && user && isDashboardUser) {
+  // 已登入者造訪 /login → 直接進 dashboard
+  if (pathname === '/login' && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
-  // /login は認証不要 — ループ防止のため必ず通過
+  // /login 不需要認證 — 防止 redirect loop
   if (pathname === '/login') {
     return supabaseResponse
   }
 
-  // /dashboard 系: 未ログインまたは権限なし → /login へ
+  // /dashboard 系: 任何已登入者皆可進入（super_admin 或 no role）
+  // 角色與 platform 判斷由 dashboard/layout.tsx 負責
   if (pathname.startsWith('/dashboard')) {
-    if (!user || !isDashboardUser) {
+    if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
