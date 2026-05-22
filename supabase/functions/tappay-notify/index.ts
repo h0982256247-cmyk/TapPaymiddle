@@ -62,12 +62,12 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq('id', merchant.id)
 
-    // 2. Save notify log
+    // 2. Save notify log (use mapped English enum, not raw TapPay Chinese status)
     await admin.from('merchant_notify_logs').insert({
       merchant_id: merchant.id,
       partner_account,
       status_code,
-      status,
+      status: newStatus,
       payment_method,
       notify_payload: payload as unknown as Record<string, unknown>,
       processed_at: new Date().toISOString(),
