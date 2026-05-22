@@ -28,12 +28,7 @@ export async function loginAction(
     return { error: error.message }
   }
 
-  const role = data.user?.user_metadata?.role
-  if (role === 'super_admin' || role === 'admin') {
-    redirect('/dashboard')
-  }
-
-  // Signed in but no valid role
-  await supabase.auth.signOut()
-  return { error: '此帳號無後台權限，請聯繫管理員' }
+  // super_admin 和 no-role 用戶都可以進入 dashboard
+  // super_admin 看全部資料，no-role 只看自己平台的商戶
+  redirect('/dashboard')
 }
