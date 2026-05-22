@@ -22,20 +22,27 @@ export default async function MerchantDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   const { id } = await params
 
+  const role = user?.user_metadata?.role
+  const isSuperAdmin = role === 'super_admin'
+
+  // super_admin 用 service role（無 RLS 限制）才能看到所有商戶資料
+  const { createAdminClient } = await import('@/lib/supabase/server')
+  const queryClient = isSuperAdmin ? await createAdminClient() : supabase
+
   const [merchantRes, basicInfoRes, paymentMethodsRes, documentsRes, apiLogsRes, notifyLogsRes] =
     await Promise.all([
-      supabase.from('merchants').select('*').eq('id', id).single(),
-      supabase.from('merchant_basic_info').select('*').eq('merchant_id', id).single(),
-      supabase.from('merchant_payment_methods').select('*').eq('merchant_id', id),
-      supabase.from('merchant_documents').select('*').eq('merchant_id', id).order('created_at', { ascending: false }),
-      supabase.from('merchant_api_logs').select('*').eq('merchant_id', id).order('created_at', { ascending: false }).limit(10),
-      supabase.from('merchant_notify_logs').select('*').eq('merchant_id', id).order('created_at', { ascending: false }).limit(5),
+      queryClient.from('merchants').select('*').eq('id', id).single(),
+      queryClient.from('merchant_basic_info').select('*').eq('merchant_id', id).single(),
+      queryClient.from('merchant_payment_methods').select('*').eq('merchant_id', id),
+      queryClient.from('merchant_documents').select('*').eq('merchant_id', id).order('created_at', { ascending: false }),
+      queryClient.from('merchant_api_logs').select('*').eq('merchant_id', id).order('created_at', { ascending: false }).limit(10),
+      queryClient.from('merchant_notify_logs').select('*').eq('merchant_id', id).order('created_at', { ascending: false }).limit(5),
     ])
 
   const merchant = merchantRes.data as Merchant | null
   if (!merchant) notFound()
 
-  const shopPageRes = await supabase
+  const shopPageRes = await queryClient
     .from('merchant_shop_pages')
     .select('*')
     .eq('partner_account', merchant.partner_account)
