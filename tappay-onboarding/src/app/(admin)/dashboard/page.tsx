@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     const user = { email: 'admin@tappay.tw' }
     const stats = [
       { label: '商戶總數', value: 24, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-      { label: '審核中', value: 8, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50' },
+      { label: '已進件', value: 8, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50' },
       { label: '已通過', value: 12, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
       { label: '待補件', value: 3, icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50' },
     ]
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
     { count: apiLogs },
   ] = await Promise.all([
     buildMerchantQuery(),
-    buildMerchantQuery('UNDER_REVIEW'),
+    buildMerchantQuery('SUBMITTED'),
     buildMerchantQuery('APPROVED'),
     buildMerchantQuery('PENDING_SUPPLEMENT'),
     (() => {
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
 
   const stats = [
     { label: '商戶總數', value: total ?? 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: '審核中', value: pending ?? 0, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: '已進件', value: pending ?? 0, icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: '已通過', value: approved ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
     { label: '待補件', value: supplement ?? 0, icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50' },
   ]
@@ -208,9 +208,9 @@ function renderDashboard(
               </div>
               <div className="space-y-2">
                 {[
-                  { label: '草稿', key: 'DRAFT' as MerchantStatus },
-                  { label: '審核中', key: 'UNDER_REVIEW' as MerchantStatus },
+                  { label: '已進件', key: 'SUBMITTED' as MerchantStatus },
                   { label: '已通過', key: 'APPROVED' as MerchantStatus },
+                  { label: '商代已建立', key: 'MERCHANT_CREATED' as MerchantStatus },
                   { label: '待補件', key: 'PENDING_SUPPLEMENT' as MerchantStatus },
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between">
