@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   if (isSuperAdmin) {
     return (
       <div>
-        <Topbar title="設定" email={user?.email} />
+        <Topbar title="設定" />
         <div className="p-6 max-w-2xl">
           <div className="p-5 rounded-2xl border border-gray-200 bg-white">
             <p className="text-sm font-semibold text-gray-900 mb-1">超級管理員帳號</p>
@@ -36,7 +36,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <Topbar title="平台設定" email={user?.email} />
+      <Topbar title="平台設定" />
       <div className="p-6 max-w-2xl space-y-4">
         <div className="p-1 rounded-2xl border border-blue-100 bg-blue-50">
           <p className="text-xs text-blue-700 px-4 py-2">

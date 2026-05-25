@@ -1,7 +1,6 @@
 interface TopbarProps {
   title?: string
   description?: string
-  email?: string | null
 }
 
 export function Topbar({ title, description }: TopbarProps) {

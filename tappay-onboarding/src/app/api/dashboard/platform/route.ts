@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '網址識別碼只能包含小寫英文、數字、連字號' }, { status: 400 })
     }
 
-    const admin = await createAdminClient()
+    const admin = createAdminClient()
 
     // Check slug uniqueness (excluding current user's platform)
     const { data: existing } = await admin

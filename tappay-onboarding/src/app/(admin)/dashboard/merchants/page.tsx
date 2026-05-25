@@ -46,7 +46,7 @@ export default async function MerchantsPage({
 
   // super_admin 用 service role（無 RLS 限制），platform merchant 用自己的 session
   const { createAdminClient } = await import('@/lib/supabase/server')
-  const queryClient = isSuperAdmin ? await createAdminClient() : supabase
+  const queryClient = isSuperAdmin ? createAdminClient() : supabase
 
   let query = queryClient
     .from('merchants')
@@ -95,7 +95,7 @@ function renderPage(
 
   return (
     <div>
-      <Topbar title="商戶管理" description={`共 ${merchants?.length ?? 0} 筆`} email={user?.email} />
+      <Topbar title="商戶管理" description={`共 ${merchants?.length ?? 0} 筆`} />
 
       <div className="p-6 space-y-4">
         {/* Filters */}

@@ -27,7 +27,7 @@ export default async function MerchantDetailPage({
 
   // super_admin 用 service role（無 RLS 限制）才能看到所有商戶資料
   const { createAdminClient } = await import('@/lib/supabase/server')
-  const queryClient = isSuperAdmin ? await createAdminClient() : supabase
+  const queryClient = isSuperAdmin ? createAdminClient() : supabase
 
   const [merchantRes, basicInfoRes, paymentMethodsRes, documentsRes, apiLogsRes, notifyLogsRes] =
     await Promise.all([
@@ -62,7 +62,7 @@ export default async function MerchantDetailPage({
 
   return (
     <div>
-      <Topbar title="商戶詳情" email={user?.email} />
+      <Topbar title="商戶詳情" />
 
       <div className="p-6 space-y-4 max-w-5xl">
         {/* Back + Header */}

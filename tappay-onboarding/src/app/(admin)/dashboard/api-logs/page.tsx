@@ -48,7 +48,7 @@ export default async function ApiLogsPage() {
 function renderLogs(user: { email?: string | null } | null, logs: ApiLog[]) {
   return (
     <div>
-      <Topbar title="API 呼叫紀錄" description={`最近 ${logs.length} 筆`} email={user?.email} />
+      <Topbar title="API 呼叫紀錄" description={`最近 ${logs.length} 筆`} />
 
       <div className="p-6">
         <Card className="rounded-2xl border-gray-200 shadow-sm overflow-hidden">

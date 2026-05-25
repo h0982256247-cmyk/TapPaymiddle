@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { merchant_id, draft_payload, current_step } = body
 
-    const admin = await createAdminClient()
+    const admin = createAdminClient()
 
     if (merchant_id) {
       // 更新既有草稿

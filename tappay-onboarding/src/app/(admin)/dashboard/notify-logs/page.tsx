@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -35,11 +35,40 @@ export default async function NotifyLogsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: logs } = await supabase
+  const role = user?.user_metadata?.role
+  const isSuperAdmin = role === 'super_admin'
+  const queryClient = isSuperAdmin ? createAdminClient() : supabase
+
+  // For non-super-admin, filter to only their platform's merchants
+  let partnerAccounts: string[] | null = null
+  if (!isSuperAdmin) {
+    const { data: platform } = await supabase
+      .from('platforms')
+      .select('id')
+      .eq('user_id', user!.id)
+      .maybeSingle()
+    if (platform?.id) {
+      const { data: merchants } = await queryClient
+        .from('merchants')
+        .select('partner_account')
+        .eq('platform_id', platform.id)
+      partnerAccounts = (merchants ?? []).map((m) => m.partner_account).filter(Boolean) as string[]
+    } else {
+      partnerAccounts = []
+    }
+  }
+
+  let query = queryClient
     .from('merchant_notify_logs')
     .select('id, partner_account, status, status_code, payment_method, created_at, merchants(partner_account, company_name)')
     .order('created_at', { ascending: false })
-    .limit(100) as { data: NotifyLogRow[] | null }
+    .limit(100)
+
+  if (partnerAccounts !== null) {
+    query = query.in('partner_account', partnerAccounts.length > 0 ? partnerAccounts : ['__none__'])
+  }
+
+  const { data: logs } = await query as { data: NotifyLogRow[] | null }
 
   return renderLogs(user, logs ?? [])
 }
@@ -49,7 +78,7 @@ function renderLogs(user: { email?: string | null } | null, logs: NotifyLogRow[]
 
   return (
     <div>
-      <Topbar title="Notify 紀錄" description={`最近 ${logs.length} 筆`} email={user?.email} />
+      <Topbar title="Notify 紀錄" description={`最近 ${logs.length} 筆`} />
 
       <div className="p-6">
         <Card className="rounded-2xl border-gray-200 shadow-sm overflow-hidden">

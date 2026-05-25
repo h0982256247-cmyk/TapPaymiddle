@@ -39,7 +39,7 @@ export default async function DashboardPage() {
 
   // super_admin 用 service role（無 RLS 限制），platform merchant 用自己的 session
   const { createAdminClient } = await import('@/lib/supabase/server')
-  const queryClient = isSuperAdmin ? await createAdminClient() : supabase
+  const queryClient = isSuperAdmin ? createAdminClient() : supabase
 
   // no-role 用戶：取得自己的 platform_id 做 filter
   let platformId: string | null = null
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       if (!isSuperAdmin && platformId) q = q.eq('platform_id', platformId)
       return q
     })() as unknown as Promise<{ data: Array<{ id: string; partner_account: string; company_name: string | null; status: string; created_at: string }> | null }>,
-    supabase.from('merchant_api_logs').select('*', { count: 'exact', head: true }),
+    queryClient.from('merchant_api_logs').select('*', { count: 'exact', head: true }),
   ])
 
   const stats = [
@@ -104,7 +104,6 @@ function renderDashboard(
       <Topbar
         title="總覽"
         description="TapPay 商戶進件管理"
-        email={user?.email}
       />
 
       <div className="p-6 space-y-6">

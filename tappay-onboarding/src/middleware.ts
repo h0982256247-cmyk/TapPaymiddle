@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 import type { Database } from '@/types/database'
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // x-pathname header: dashboard layout で現在パスを判定するために必要
+  // x-pathname header: dashboard layout 判斷目前路徑用
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-pathname', pathname)
 
@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // セッション更新（必須 — これがないと server component でセッションが読めない）
+  // セッション更新（必須 — server component でセッションが読めるようにする）
   const { data: { user } } = await supabase.auth.getUser()
 
   // 已登入者造訪 /login → 直接進 dashboard
