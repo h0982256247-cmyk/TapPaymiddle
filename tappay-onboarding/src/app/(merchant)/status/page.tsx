@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Card } from '@/components/ui/card'
@@ -21,7 +21,8 @@ export default async function StatusPage({
     redirect('/')
   }
 
-  const supabase = await createClient()
+  // 使用 service role client：商戶是匿名進件（user_id = null），session client 會被 RLS 擋住
+  const supabase = createAdminClient()
 
   const { data: merchant } = await supabase
     .from('merchants')
