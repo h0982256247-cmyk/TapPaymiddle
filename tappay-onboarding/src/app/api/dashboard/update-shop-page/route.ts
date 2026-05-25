@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         .eq('partner_account', partner_account)
         .single()
 
-      if (!merchant) {
+      if (!merchant || !merchant.platform_id) {
         return NextResponse.json({ error: '商戶不存在或無權限' }, { status: 403 })
       }
 
