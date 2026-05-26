@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -8,8 +7,9 @@ import { INDUSTRY_LABELS } from '@/types/merchant'
 import { Search, ArrowRight, ChevronRight } from 'lucide-react'
 import type { Merchant } from '@/types/merchant'
 import { cn } from '@/lib/utils'
+import { getAuthContext } from '@/lib/auth-context'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -37,29 +37,15 @@ export default async function MerchantsPage({
     return renderPage(PREVIEW_MERCHANTS, params)
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const role = user?.user_metadata?.role
-  const isSuperAdmin = role === 'super_admin'
-
-  const { createAdminClient } = await import('@/lib/supabase/server')
-  const queryClient = isSuperAdmin ? createAdminClient() : supabase
+  const { queryClient, isSuperAdmin, platformId } = await getAuthContext()
 
   let query = queryClient
     .from('merchants')
     .select('id, partner_account, company_name, company_name_english, merchant_type, industry_code, status, tappay_status_code, tappay_opinion, submitted_at, created_at, platform_id')
     .order('created_at', { ascending: false })
 
-  if (!isSuperAdmin) {
-    const { data: platform } = await supabase
-      .from('platforms')
-      .select('id')
-      .eq('user_id', user!.id)
-      .maybeSingle()
-    if (platform) {
-      query = query.eq('platform_id', platform.id)
-    }
+  if (!isSuperAdmin && platformId) {
+    query = query.eq('platform_id', platformId)
   }
 
   if (params.status) {

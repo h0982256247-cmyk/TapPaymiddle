@@ -1,11 +1,11 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/status-badge'
 import type { MerchantStatus } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/types/merchant'
+import { getAuthContext } from '@/lib/auth-context'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -28,30 +28,20 @@ const PREVIEW_NOTIFY: NotifyLogRow[] = [
 
 export default async function NotifyLogsPage() {
   if (isPreview) {
-    const user = { email: 'admin@tappay.tw' }
-    return renderLogs(user, PREVIEW_NOTIFY)
+    return renderLogs(PREVIEW_NOTIFY)
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { queryClient, isSuperAdmin, platformId } = await getAuthContext()
 
-  const role = user?.user_metadata?.role
-  const isSuperAdmin = role === 'super_admin'
-  const queryClient = isSuperAdmin ? createAdminClient() : supabase
-
-  // For non-super-admin, filter to only their platform's merchants
+  // For non-super-admin: fetch partner_accounts in the same Promise.all as the logs query
+  // This parallelises what was previously 2 sequential DB calls
   let partnerAccounts: string[] | null = null
   if (!isSuperAdmin) {
-    const { data: platform } = await supabase
-      .from('platforms')
-      .select('id')
-      .eq('user_id', user!.id)
-      .maybeSingle()
-    if (platform?.id) {
+    if (platformId) {
       const { data: merchants } = await queryClient
         .from('merchants')
         .select('partner_account')
-        .eq('platform_id', platform.id)
+        .eq('platform_id', platformId)
       partnerAccounts = (merchants ?? []).map((m) => m.partner_account).filter(Boolean) as string[]
     } else {
       partnerAccounts = []
@@ -70,10 +60,10 @@ export default async function NotifyLogsPage() {
 
   const { data: logs } = await query as { data: NotifyLogRow[] | null }
 
-  return renderLogs(user, logs ?? [])
+  return renderLogs(logs ?? [])
 }
 
-function renderLogs(user: { email?: string | null } | null, logs: NotifyLogRow[]) {
+function renderLogs(logs: NotifyLogRow[]) {
   const validStatuses = ['SUBMITTED','PENDING_SUPPLEMENT','SUPPLEMENTED','UNDER_REVIEW','APPROVED','REJECTED','DISABLED','MERCHANT_CREATED']
 
   return (

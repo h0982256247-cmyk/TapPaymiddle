@@ -1,5 +1,4 @@
 import React from 'react'
-import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -8,8 +7,11 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import type { MerchantStatus } from '@/types/merchant'
+import { getAuthContext } from '@/lib/auth-context'
 
-export const dynamic = 'force-dynamic'
+// Cache for 30s — avoids re-fetching on every navigation while still picking up
+// new merchants within half a minute. Use force-dynamic only if you need live data.
+export const revalidate = 30
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -27,24 +29,7 @@ export default async function DashboardPage() {
     return renderDashboard(stats, recentMerchants, 1024)
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const role = user?.user_metadata?.role
-  const isSuperAdmin = role === 'super_admin'
-
-  const { createAdminClient } = await import('@/lib/supabase/server')
-  const queryClient = isSuperAdmin ? createAdminClient() : supabase
-
-  let platformId: string | null = null
-  if (!isSuperAdmin) {
-    const { data: platform } = await supabase
-      .from('platforms')
-      .select('id')
-      .eq('user_id', user!.id)
-      .maybeSingle()
-    platformId = platform?.id ?? null
-  }
+  const { queryClient, isSuperAdmin, platformId } = await getAuthContext()
 
   const buildQ = (status?: string) => {
     let q = queryClient.from('merchants').select('*', { count: 'exact', head: true })

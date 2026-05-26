@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
@@ -10,7 +9,9 @@ import Link from 'next/link'
 import type { Merchant, MerchantBasicInfo, MerchantPaymentMethod, MerchantDocument, MerchantApiLog, MerchantNotifyLog } from '@/types/merchant'
 import { CopyField } from '@/components/shared/copy-field'
 import { ShopPageEditor } from '@/components/shared/shop-page-editor'
+import { getAuthContext } from '@/lib/auth-context'
 
+// Detail page is always fresh — merchant status/data can change via notify
 export const dynamic = 'force-dynamic'
 
 export default async function MerchantDetailPage({
@@ -18,16 +19,10 @@ export default async function MerchantDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { id } = await params
-
-  const role = user?.user_metadata?.role
-  const isSuperAdmin = role === 'super_admin'
-
-  // super_admin 用 service role（無 RLS 限制）才能看到所有商戶資料
-  const { createAdminClient } = await import('@/lib/supabase/server')
-  const queryClient = isSuperAdmin ? createAdminClient() : supabase
+  const [{ queryClient }, { id }] = await Promise.all([
+    getAuthContext(),
+    params,
+  ])
 
   const [merchantRes, basicInfoRes, paymentMethodsRes, documentsRes, apiLogsRes, notifyLogsRes] =
     await Promise.all([

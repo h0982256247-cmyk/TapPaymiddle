@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { CheckCircle2, XCircle } from 'lucide-react'
+import { getAuthContext } from '@/lib/auth-context'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -28,24 +28,21 @@ const PREVIEW_LOGS: ApiLog[] = [
 
 export default async function ApiLogsPage() {
   if (isPreview) {
-    const user = { email: 'admin@tappay.tw' }
-    const logs = PREVIEW_LOGS
-    return renderLogs(user, logs)
+    return renderLogs(PREVIEW_LOGS)
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { queryClient } = await getAuthContext()
 
-  const { data: logs } = await supabase
+  const { data: logs } = await queryClient
     .from('merchant_api_logs')
     .select('id, api_name, partner_account, is_success, duration_ms, error_message, created_at, merchants(partner_account, company_name)')
     .order('created_at', { ascending: false })
     .limit(100) as { data: ApiLog[] | null }
 
-  return renderLogs(user, logs ?? [])
+  return renderLogs(logs ?? [])
 }
 
-function renderLogs(user: { email?: string | null } | null, logs: ApiLog[]) {
+function renderLogs(logs: ApiLog[]) {
   return (
     <div>
       <Topbar title="API 呼叫紀錄" description={`最近 ${logs.length} 筆`} />
