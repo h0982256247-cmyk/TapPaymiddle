@@ -4,8 +4,9 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import type { MerchantStatus } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/types/merchant'
 import { getAuthContext } from '@/lib/auth-context'
+import { getNotifyLogs } from '@/lib/cached-queries'
 
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -31,36 +32,10 @@ export default async function NotifyLogsPage() {
     return renderLogs(PREVIEW_NOTIFY)
   }
 
-  const { queryClient, isSuperAdmin, platformId } = await getAuthContext()
+  const { isSuperAdmin, platformId } = await getAuthContext()
+  const logs = await getNotifyLogs(platformId, isSuperAdmin) as NotifyLogRow[]
 
-  // For non-super-admin: fetch partner_accounts in the same Promise.all as the logs query
-  // This parallelises what was previously 2 sequential DB calls
-  let partnerAccounts: string[] | null = null
-  if (!isSuperAdmin) {
-    if (platformId) {
-      const { data: merchants } = await queryClient
-        .from('merchants')
-        .select('partner_account')
-        .eq('platform_id', platformId)
-      partnerAccounts = (merchants ?? []).map((m) => m.partner_account).filter(Boolean) as string[]
-    } else {
-      partnerAccounts = []
-    }
-  }
-
-  let query = queryClient
-    .from('merchant_notify_logs')
-    .select('id, partner_account, status, status_code, payment_method, created_at, merchants(partner_account, company_name)')
-    .order('created_at', { ascending: false })
-    .limit(100)
-
-  if (partnerAccounts !== null) {
-    query = query.in('partner_account', partnerAccounts.length > 0 ? partnerAccounts : ['__none__'])
-  }
-
-  const { data: logs } = await query as { data: NotifyLogRow[] | null }
-
-  return renderLogs(logs ?? [])
+  return renderLogs(logs)
 }
 
 function renderLogs(logs: NotifyLogRow[]) {

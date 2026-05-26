@@ -1,9 +1,9 @@
 import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { CheckCircle2, XCircle } from 'lucide-react'
-import { getAuthContext } from '@/lib/auth-context'
+import { getApiLogs } from '@/lib/cached-queries'
 
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -31,16 +31,10 @@ export default async function ApiLogsPage() {
     return renderLogs(PREVIEW_LOGS)
   }
 
-  const { queryClient } = await getAuthContext()
-
-  const { data: logs } = await queryClient
-    .from('merchant_api_logs')
-    .select('id, api_name, partner_account, is_success, duration_ms, error_message, created_at, merchants(partner_account, company_name)')
-    .order('created_at', { ascending: false })
-    .limit(100) as { data: ApiLog[] | null }
-
-  return renderLogs(logs ?? [])
+  const logs = await getApiLogs() as ApiLog[]
+  return renderLogs(logs)
 }
+
 
 function renderLogs(logs: ApiLog[]) {
   return (

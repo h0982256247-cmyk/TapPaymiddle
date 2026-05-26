@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 
 /**
  * TapPay Notify webhook proxy
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(data, { status: response.status })
     }
+
+    // Merchant status changed — bust caches so dashboard reflects it immediately
+    revalidateTag('merchants')
+    revalidateTag('notify-logs')
 
     return NextResponse.json({ status: 0, msg: 'OK' })
   } catch (err: unknown) {

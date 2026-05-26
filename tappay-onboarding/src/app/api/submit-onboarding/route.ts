@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { revalidateTag } from 'next/cache'
 
 // 進件流程需依序呼叫 4 個 TapPay API，延長 timeout 避免 Vercel 10s 限制
 export const maxDuration = 60
@@ -191,6 +192,10 @@ export async function POST(request: NextRequest) {
         throw new Error(fileData.error ?? 'qualification-file API 失敗')
       }
     }
+
+    // Bust dashboard caches so the new merchant appears immediately
+    revalidateTag('merchants')
+    revalidateTag('api-logs')
 
     return NextResponse.json({ success: true, merchant_id })
   } catch (err: unknown) {

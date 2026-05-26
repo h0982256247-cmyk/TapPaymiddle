@@ -8,10 +8,11 @@ import {
 import Link from 'next/link'
 import type { MerchantStatus } from '@/types/merchant'
 import { getAuthContext } from '@/lib/auth-context'
+import { getDashboardStats } from '@/lib/cached-queries'
 
-// Cache for 30s — avoids re-fetching on every navigation while still picking up
-// new merchants within half a minute. Use force-dynamic only if you need live data.
-export const revalidate = 30
+// force-dynamic because createClient() uses cookies() — page itself can't be
+// statically cached. DB queries are cached via unstable_cache in cached-queries.ts.
+export const dynamic = 'force-dynamic'
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -29,59 +30,10 @@ export default async function DashboardPage() {
     return renderDashboard(stats, recentMerchants, 1024)
   }
 
-  const { queryClient, isSuperAdmin, platformId } = await getAuthContext()
+  const { isSuperAdmin, platformId } = await getAuthContext()
+  const { stats, recentMerchants, apiLogs } = await getDashboardStats(platformId, isSuperAdmin)
 
-  const buildQ = (status?: string) => {
-    let q = queryClient.from('merchants').select('*', { count: 'exact', head: true })
-    if (!isSuperAdmin && platformId) q = q.eq('platform_id', platformId)
-    if (status) q = q.eq('status', status)
-    return q
-  }
-
-  const [
-    { count: total },
-    { count: draft },
-    { count: submitted },
-    { count: underReview },
-    { count: pendingSupplement },
-    { count: approved },
-    { count: rejected },
-    { count: merchantCreated },
-    { data: recentMerchants },
-    { count: apiLogs },
-  ] = await Promise.all([
-    buildQ(),
-    buildQ('DRAFT'),
-    buildQ('SUBMITTED'),
-    buildQ('UNDER_REVIEW'),
-    buildQ('PENDING_SUPPLEMENT'),
-    buildQ('APPROVED'),
-    buildQ('REJECTED'),
-    buildQ('MERCHANT_CREATED'),
-    (() => {
-      let q = queryClient
-        .from('merchants')
-        .select('id, partner_account, company_name, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(6)
-      if (!isSuperAdmin && platformId) q = q.eq('platform_id', platformId)
-      return q
-    })() as unknown as Promise<{ data: Array<{ id: string; partner_account: string; company_name: string | null; status: string; created_at: string }> | null }>,
-    queryClient.from('merchant_api_logs').select('*', { count: 'exact', head: true }),
-  ])
-
-  const stats = {
-    total: total ?? 0,
-    draft: draft ?? 0,
-    submitted: submitted ?? 0,
-    underReview: underReview ?? 0,
-    pendingSupplement: pendingSupplement ?? 0,
-    approved: approved ?? 0,
-    rejected: rejected ?? 0,
-    merchantCreated: merchantCreated ?? 0,
-  }
-
-  return renderDashboard(stats, recentMerchants ?? [], apiLogs ?? 0)
+  return renderDashboard(stats, recentMerchants, apiLogs)
 }
 
 type Stats = {

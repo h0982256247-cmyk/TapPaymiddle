@@ -8,8 +8,9 @@ import { Search, ArrowRight, ChevronRight } from 'lucide-react'
 import type { Merchant } from '@/types/merchant'
 import { cn } from '@/lib/utils'
 import { getAuthContext } from '@/lib/auth-context'
+import { getMerchantsList } from '@/lib/cached-queries'
 
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -37,27 +38,9 @@ export default async function MerchantsPage({
     return renderPage(PREVIEW_MERCHANTS, params)
   }
 
-  const { queryClient, isSuperAdmin, platformId } = await getAuthContext()
-
-  let query = queryClient
-    .from('merchants')
-    .select('id, partner_account, company_name, company_name_english, merchant_type, industry_code, status, tappay_status_code, tappay_opinion, submitted_at, created_at, platform_id')
-    .order('created_at', { ascending: false })
-
-  if (!isSuperAdmin && platformId) {
-    query = query.eq('platform_id', platformId)
-  }
-
-  if (params.status) {
-    query = query.eq('status', params.status)
-  }
-
-  if (params.q) {
-    query = query.or(`partner_account.ilike.%${params.q}%,company_name.ilike.%${params.q}%`)
-  }
-
-  const { data: merchants } = await query as { data: Merchant[] | null }
-  return renderPage(merchants ?? [], params)
+  const { isSuperAdmin, platformId } = await getAuthContext()
+  const merchants = await getMerchantsList(platformId, isSuperAdmin, params.status, params.q) as Merchant[]
+  return renderPage(merchants, params)
 }
 
 const STATUS_TABS = [
