@@ -76,9 +76,13 @@ export async function POST(request: NextRequest) {
     let merchant_id: string
 
     if (!createAccountRes.ok || createAccountData.error) {
-      // TapPay 1117 / 2201 = 帳號已存在 → 嘗試從 DB 撈已建立的記錄繼續後面的步驟
-      const accountAlreadyExists = createAccountData.tappay_status === 1117 || createAccountData.tappay_status === 2201
-      if (accountAlreadyExists) {
+      // TapPay 1117 = partner_account 名稱已被佔用（名稱重複）
+      // TapPay 2201 = 帳號建立失敗（原因各異：統編已登記、平台限制等）
+      //   → 2201 與「帳號名稱重複」無關，不應顯示「帳號已存在」
+      const partnerAccountDuplicate = createAccountData.tappay_status === 1117
+
+      if (partnerAccountDuplicate) {
+        // partner_account 名稱已在 TapPay 登記 → 查 DB 看能否繼續
         const { data: existingMerchant } = await supabaseAdmin
           .from('merchants')
           .select('id, partner_key')
@@ -86,15 +90,23 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (existingMerchant?.partner_key) {
-          // 帳號存在於 TapPay 也存在於 DB → 繼續後面步驟
+          // DB 也有紀錄 → 這是 retry，直接用既有 partner_key 繼續後面步驟
           partner_key = existingMerchant.partner_key
           merchant_id = existingMerchant.id
         } else {
-          // 帳號存在於 TapPay 但不在我們 DB → 真正的衝突，要求更換帳號
-          return NextResponse.json({ error: createAccountData.error, errorCode: 'ACCOUNT_EXISTS' }, { status: 409 })
+          // TapPay 有但 DB 無 → 資料失步，需要人工處理
+          return NextResponse.json(
+            {
+              error: '此帳號名稱已被 TapPay 登記，請改用其他帳號名稱。',
+              errorCode: 'ACCOUNT_EXISTS',
+              partner_account: body.partner_account,
+            },
+            { status: 409 }
+          )
         }
       } else {
-        throw new Error(createAccountData.error ?? 'create-partner-account 失敗')
+        // 其他錯誤（含 2201）：直接把 TapPay 原始訊息回傳給前端
+        throw new Error(createAccountData.error ?? 'TapPay 建立帳號失敗')
       }
     } else {
       partner_key = createAccountData.partner_key

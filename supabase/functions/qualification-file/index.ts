@@ -84,27 +84,26 @@ serve(async (req) => {
     const duration = Date.now() - startTime
     const isSuccess = tappayResponse.status === 0
 
-    // Mark is_complete = true after successful file upload
     if (isSuccess && merchant_id) {
       await admin.from('merchants')
         .update({ is_complete: true })
         .eq('id', merchant_id)
-
-      // Also call additional with is_complete=true
-      await admin.from('merchant_api_logs').insert({
-        merchant_id,
-        partner_account,
-        api_name: 'qualification-file',
-        http_method: 'POST',
-        endpoint: '/platform/qualification/file',
-        request_payload: { document_types: Object.keys(document_paths) },
-        response_payload: tappayResponse,
-        response_status: response.status,
-        duration_ms: duration,
-        is_success: isSuccess,
-        error_message: isSuccess ? null : tappayResponse.msg,
-      })
     }
+
+    // 無論成功或失敗都記 log（修正：原本只有成功才記）
+    await admin.from('merchant_api_logs').insert({
+      merchant_id: merchant_id ?? null,
+      partner_account,
+      api_name: 'qualification-file',
+      http_method: 'POST',
+      endpoint: '/platform/qualification/file',
+      request_payload: { document_types: Object.keys(document_paths as Record<string, unknown>) },
+      response_payload: tappayResponse,
+      response_status: response.status,
+      duration_ms: duration,
+      is_success: isSuccess,
+      error_message: isSuccess ? null : tappayResponse.msg,
+    })
 
     if (!isSuccess) {
       return new Response(

@@ -251,12 +251,12 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
   async function onSubmit(data: OnboardingFormData) {
     if (currentStep !== TOTAL_STEPS) return
 
-    // 防呆：申請刷卡機時，實體商店照片至少 2 張
+    // 防呆：申請刷卡機時，實體商店照片至少 2 張（檔案已即時上傳為 UploadedFile）
     if (data.payment_methods?.includes('OFFLINE_CREDIT_CARD')) {
       const docs = data.documents?.supporting_documents
       const count = Array.isArray(docs)
-        ? docs.filter((f) => f instanceof File).length
-        : docs instanceof File ? 1 : 0
+        ? docs.filter(isUploadedFile).length
+        : isUploadedFile(docs) ? 1 : 0
       if (count < 2) {
         toast.error('實體商店照片至少需要上傳 2 張（含店面招牌、商品展示、售價照）')
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -307,12 +307,28 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
 
       const result = await response.json()
 
-      // 帳號已存在：跳回第一步並在欄位顯示錯誤
-      if (result.errorCode === 'ACCOUNT_EXISTS') {
-        methods.setError('partner_account', { message: '此帳號已存在，請更換一個不同的帳號' })
+      // 帳號已存在或失步：清除 localStorage 的 partner_account 後跳回第一步
+      // 這樣重整頁面時不會把舊帳號帶回來，強迫使用者重新輸入
+      if (result.errorCode === 'ACCOUNT_EXISTS' || result.errorCode === 'ACCOUNT_DESYNC') {
+        // 清除暫存中的 partner_account，避免重整後悄悄帶回失敗的帳號
+        try {
+          const saved = localStorage.getItem(LS_FORM_DATA)
+          if (saved) {
+            const parsed = JSON.parse(saved) as Partial<OnboardingFormData>
+            delete parsed.partner_account
+            localStorage.setItem(LS_FORM_DATA, JSON.stringify(parsed))
+          }
+        } catch { /* ignore */ }
+
+        methods.setValue('partner_account', '')
+        methods.setError('partner_account', {
+          message: result.errorCode === 'ACCOUNT_EXISTS'
+            ? '此帳號已被使用，請改用其他帳號名稱'
+            : '此帳號在 TapPay 已登記但系統資料遺失，請改用其他帳號名稱',
+        })
         setCurrentStep(1)
         window.scrollTo({ top: 0, behavior: 'smooth' })
-        toast.error('Partner Account 已存在，請更換後重新提交')
+        toast.error('請重新輸入一個全新的帳號名稱', { duration: 6000 })
         return
       }
 

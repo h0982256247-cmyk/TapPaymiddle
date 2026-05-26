@@ -40,7 +40,7 @@ export default async function MerchantsPage({
 
   const { isSuperAdmin, platformId } = await getAuthContext()
   const merchants = await getMerchantsList(platformId, isSuperAdmin, params.status, params.q) as Merchant[]
-  return renderPage(merchants, params)
+  return renderPage(merchants, params, isSuperAdmin)
 }
 
 const STATUS_TABS = [
@@ -55,7 +55,7 @@ const STATUS_TABS = [
   { value: 'DRAFT', label: '草稿' },
 ]
 
-function renderPage(merchants: Merchant[], params: SearchParams) {
+function renderPage(merchants: Merchant[], params: SearchParams, isSuperAdmin = false) {
   const activeStatus = params.status ?? ''
 
   return (
@@ -66,6 +66,18 @@ function renderPage(merchants: Merchant[], params: SearchParams) {
       />
 
       <div className="p-6 space-y-4">
+
+        {/* Super Admin: 帳號復原入口 */}
+        {isSuperAdmin && (
+          <div className="flex justify-end">
+            <Link
+              href="/dashboard/merchants/recover"
+              className="flex items-center gap-1.5 text-xs text-amber-600 border border-amber-200 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors"
+            >
+              <span>⚠</span> 帳號復原工具
+            </Link>
+          </div>
+        )}
 
         {/* Filter Bar */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">

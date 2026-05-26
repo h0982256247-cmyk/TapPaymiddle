@@ -76,7 +76,7 @@ serve(async (req) => {
       const partnerKey = (tappayResponse.portal_account as { partner_key: string }).partner_key
 
       if (existingMerchantId) {
-        await admin
+        const { error: updateError } = await admin
           .from('merchants')
           .update({
             partner_key: partnerKey,
@@ -86,23 +86,39 @@ serve(async (req) => {
             submitted_at: new Date().toISOString(),
           })
           .eq('id', existingMerchantId)
+
+        if (updateError) {
+          // TapPay 帳號已建立但 DB 更新失敗 — 記錄完整資訊以便人工補救
+          console.error(`[DESYNC] TapPay account created but DB update failed. partner_account=${partner_account} partner_key=${partnerKey} merchant_id=${existingMerchantId} error=${updateError.message}`)
+          throw new Error(`DB 更新失敗 (TapPay 帳號已建立): ${updateError.message}`)
+        }
       } else {
-        const { data: merchant } = await admin
+        // 使用 upsert 取代 insert：若因 retry 造成 partner_account 已存在，自動補寫 partner_key
+        const { data: merchant, error: upsertError } = await admin
           .from('merchants')
-          .insert({
-            user_id: null,
-            partner_account,
-            contact_email,
-            company_name,
-            partner_key: partnerKey,
-            platform_id: bodyPlatformId ?? null,
-            status: 'SUBMITTED',
-            submitted_at: new Date().toISOString(),
-          })
+          .upsert(
+            {
+              partner_account,
+              user_id: null,
+              contact_email,
+              company_name,
+              partner_key: partnerKey,
+              platform_id: bodyPlatformId ?? null,
+              status: 'SUBMITTED',
+              submitted_at: new Date().toISOString(),
+            },
+            { onConflict: 'partner_account' }
+          )
           .select('id')
           .single()
 
-        dbMerchantId = merchant?.id ?? null
+        if (upsertError || !merchant) {
+          // 關鍵：TapPay 帳號已建立但 DB 寫入失敗，記錄 partner_key 供人工復原
+          console.error(`[DESYNC] TapPay account created but DB upsert failed. partner_account=${partner_account} partner_key=${partnerKey} error=${upsertError?.message ?? 'no data'}`)
+          throw new Error(`資料庫寫入失敗 (TapPay 帳號已建立，partner_account=${partner_account})，請聯絡技術支援。`)
+        }
+
+        dbMerchantId = merchant.id
       }
 
       merchantId = dbMerchantId
