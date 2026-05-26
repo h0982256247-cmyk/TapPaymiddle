@@ -34,6 +34,12 @@ serve(async (req) => {
     const platformKey = bodyPlatformKey
     const baseUrl = getTapPayBaseUrl()
 
+    // 重試保護：先刪除此 merchant 既有的文件記錄，再重新插入
+    // 避免因 timeout 重試導致 merchant_documents 出現重複記錄
+    if (merchant_id) {
+      await admin.from('merchant_documents').delete().eq('merchant_id', merchant_id)
+    }
+
     // Build multipart/form-data for TapPay
     const formData = new FormData()
     formData.append('platform_key', platformKey)
