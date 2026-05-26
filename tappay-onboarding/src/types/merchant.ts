@@ -29,6 +29,23 @@ export type MerchantStatus =
 
 export type TapPayStatusCode = 1 | 4 | 5 | 6 | 7 | 8 | 9 | 16
 
+// ================================================
+// File Upload Types
+// ================================================
+
+/** 已上傳到 Supabase Storage 的檔案描述（可 JSON 序列化，重整後不遺失） */
+export interface UploadedFile {
+  _uploaded: true
+  path: string   // Supabase Storage path
+  name: string   // 原始檔名
+  size: number   // bytes
+  type: string   // MIME type
+}
+
+export function isUploadedFile(v: unknown): v is UploadedFile {
+  return typeof v === 'object' && v !== null && (v as UploadedFile)._uploaded === true
+}
+
 export type DocumentType =
   | 'id_photo_front'
   | 'id_photo_back'
@@ -307,8 +324,8 @@ export interface OnboardingFormData {
   cvscom_info?: Partial<CvscomConfig>
   shop_page_info?: Partial<ShopPageInfo>
 
-  // Step 6: 文件上傳
-  documents?: Partial<Record<DocumentType, File | null>>
+  // Step 6: 文件上傳（UploadedFile 可 JSON 序列化，重整後不遺失）
+  documents?: Partial<Record<DocumentType, UploadedFile | UploadedFile[] | null>>
 }
 
 // ================================================

@@ -3,7 +3,8 @@
 import { useFormContext, Controller } from 'react-hook-form'
 import { FileUpload } from '@/components/onboarding/file-upload'
 import { Info, CheckCircle2 } from 'lucide-react'
-import type { OnboardingFormData, DocumentType } from '@/types/merchant'
+import type { OnboardingFormData, DocumentType, UploadedFile } from '@/types/merchant'
+import { createClient } from '@/lib/supabase/client'
 
 interface DocumentConfig {
   key: DocumentType
@@ -120,10 +121,21 @@ const DOCUMENT_CONFIGS: DocumentConfig[] = [
 
 export function Step6() {
   const { control, watch } = useFormContext<OnboardingFormData>()
+  const supabase = createClient()
 
   const merchantType = watch('merchant_type')
   const industryCode = watch('industry_code')
   const paymentMethods = watch('payment_methods')
+  const partnerAccount = watch('partner_account')
+
+  async function uploadDocFn(file: File): Promise<UploadedFile> {
+    const account = (partnerAccount || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_') || `anon_${Date.now()}`
+    const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9_\-.]/g, '_') || 'file'
+    const path = `${account}/${Date.now()}_${safeName}`
+    const { error } = await supabase.storage.from('merchant-documents').upload(path, file)
+    if (error) throw new Error(error.message)
+    return { _uploaded: true, path, name: file.name, size: file.size, type: file.type }
+  }
 
   const conditionData: Partial<OnboardingFormData> = {
     merchant_type: merchantType,
@@ -180,8 +192,9 @@ export function Step6() {
                     required={getRequired(doc)}
                     multiple={doc.multiple}
                     maxFiles={doc.maxFiles}
-                    value={field.value as File | File[] | null}
+                    value={field.value as UploadedFile | UploadedFile[] | null}
                     onChange={field.onChange}
+                    uploadFn={uploadDocFn}
                     error={fieldState.error?.message}
                   />
                 )}
@@ -211,8 +224,9 @@ export function Step6() {
                       required={false}
                       multiple={doc.multiple}
                       maxFiles={doc.maxFiles}
-                      value={field.value as File | File[] | null}
+                      value={field.value as UploadedFile | UploadedFile[] | null}
                       onChange={field.onChange}
+                      uploadFn={uploadDocFn}
                       error={fieldState.error?.message}
                     />
                   )}

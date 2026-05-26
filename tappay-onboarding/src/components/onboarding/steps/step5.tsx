@@ -8,16 +8,17 @@ import { CreditCard, Store, Package, Landmark, Info, MapPin, Globe, Zap, Link as
 import { CityDistrictSelect } from '../city-district-select'
 import { FileUpload } from '../file-upload'
 import { cn } from '@/lib/utils'
-import type { OnboardingFormData, PaymentMethod } from '@/types/merchant'
-import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
+import type { OnboardingFormData, PaymentMethod, UploadedFile } from '@/types/merchant'
+import { PAYMENT_METHOD_LABELS, isUploadedFile } from '@/types/merchant'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app').replace(/\/$/, '')
 
 // ── 審查頁面預覽 Modal ─────────────────────────
 
 interface ProductPreviewItem {
-  product_image?: File | null
+  product_image?: File | UploadedFile | null
   product_name?: string
   product_price?: number
   product_description?: string
@@ -49,7 +50,14 @@ function ShopPagePreviewModal({
   const [quantities, setQuantities] = useState<number[]>(products.map(() => 1))
   const [cart, setCart] = useState<{ idx: number; name: string; price: number; qty: number }[]>([])
 
-  const imageUrls = products.map((p) => (p.product_image instanceof File ? URL.createObjectURL(p.product_image) : null))
+  const supabaseForPreview = createClient()
+  const imageUrls = products.map((p) => {
+    if (p.product_image instanceof File) return URL.createObjectURL(p.product_image)
+    if (isUploadedFile(p.product_image)) {
+      return supabaseForPreview.storage.from('shop-images').getPublicUrl(p.product_image.path).data.publicUrl
+    }
+    return null
+  })
 
   useEffect(() => {
     return () => {
@@ -464,6 +472,17 @@ export function Step5() {
   const servicePhone = watch('shop_page_info.service_phone')
   const serviceEmail = watch('shop_page_info.service_email')
 
+  const supabase = createClient()
+
+  async function uploadProductImageFn(file: File): Promise<UploadedFile> {
+    const account = (partnerAccount || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_') || `anon_${Date.now()}`
+    const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9_\-.]/g, '_') || 'file'
+    const path = `${account}/${Date.now()}_${safeName}`
+    const { error } = await supabase.storage.from('shop-images').upload(path, file)
+    if (error) throw new Error(error.message)
+    return { _uploaded: true, path, name: file.name, size: file.size, type: file.type }
+  }
+
   const { fields: productFields, append: appendProduct, remove: removeProduct } = useFieldArray({
     control,
     name: 'shop_page_info.products' as never,
@@ -693,8 +712,9 @@ export function Step5() {
                                   hint="JPG · PNG · WEBP"
                                   required
                                   accept=".jpg,.jpeg,.png,.webp"
-                                  value={imgField.value as File | null}
+                                  value={imgField.value as UploadedFile | null}
                                   onChange={imgField.onChange}
+                                  uploadFn={uploadProductImageFn}
                                   error={fieldState.error?.message}
                                 />
                               )}

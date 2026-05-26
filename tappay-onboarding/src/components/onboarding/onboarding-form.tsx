@@ -19,7 +19,7 @@ import {
   step5Schema,
 } from '@/lib/schemas/onboarding'
 import type { OnboardingFormData } from '@/types/merchant'
-import { createClient } from '@/lib/supabase/client'
+import { isUploadedFile } from '@/types/merchant'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, Loader2, Save, Send, AlertCircle, X, RotateCcw } from 'lucide-react'
 
@@ -122,7 +122,6 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [hasSavedDraft, setHasSavedDraft] = useState(false)
-  const supabase = createClient()
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentStepRef = useRef(currentStep)
 
@@ -267,46 +266,23 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
 
     setSubmitting(true)
     try {
+      // 文件已在選檔時即時上傳，此處只提取 Storage path
       const documentUrls: Record<string, string[]> = {}
       if (data.documents) {
-        for (const [docType, files] of Object.entries(data.documents)) {
-          if (!files) continue
-          const fileArray = Array.isArray(files) ? files : [files]
-          const urls: string[] = []
-
-          for (const file of fileArray) {
-            if (!file || !(file instanceof File)) continue
-            const rawAccount = data.partner_account || `anon_${Date.now()}`
-            const partnerAccount = rawAccount.replace(/[^a-zA-Z0-9_-]/g, '_') || `anon_${Date.now()}`
-            const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9_\-.]/g, '_') || 'file'
-            const filePath = `${partnerAccount}/${Date.now()}_${safeName}`
-            const { error } = await supabase.storage
-              .from('merchant-documents')
-              .upload(filePath, file)
-
-            if (error) throw error
-            urls.push(filePath)
-          }
-          documentUrls[docType] = urls
+        for (const [docType, fileOrFiles] of Object.entries(data.documents)) {
+          if (!fileOrFiles) continue
+          const fileArray = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles]
+          const paths = fileArray.filter(isUploadedFile).map(f => f.path)
+          if (paths.length > 0) documentUrls[docType] = paths
         }
       }
 
-      // 如果有開啟快速審查頁面，上傳所有商品圖片
+      // 商品圖片已在選檔時即時上傳，提取路徑
       const productImagePaths: (string | null)[] = []
       if (data.online_credit_card_info?.use_shop_page && Array.isArray(data.shop_page_info?.products)) {
-        const partnerAccount = (data.partner_account || 'anon').replace(/[^a-zA-Z0-9_-]/g, '_')
-        for (const [idx, product] of (data.shop_page_info.products as Array<{ product_image?: unknown }>).entries()) {
-          if (product.product_image instanceof File) {
-            const file = product.product_image
-            const safeName = (file.name || 'product').replace(/[^a-zA-Z0-9_\-.]/g, '_')
-            const filePath = `${partnerAccount}/${Date.now()}_${idx}_${safeName}`
-            const { error: imgError } = await supabase.storage
-              .from('shop-images')
-              .upload(filePath, file)
-            productImagePaths.push(imgError ? null : filePath)
-          } else {
-            productImagePaths.push(null)
-          }
+        for (const product of data.shop_page_info.products as Array<{ product_image?: unknown }>) {
+          const img = product.product_image
+          productImagePaths.push(isUploadedFile(img) ? img.path : null)
         }
       }
 
