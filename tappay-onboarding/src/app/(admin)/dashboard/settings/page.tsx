@@ -32,7 +32,7 @@ export default async function SettingsPage() {
     .eq('user_id', user!.id)
     .maybeSingle()
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
 
   return (
     <div>
