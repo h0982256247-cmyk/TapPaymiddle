@@ -116,7 +116,30 @@ export async function POST(request: NextRequest) {
       throw new Error(basicData.error ?? 'basic API 失敗')
     }
 
-    // 4. additional
+    // 4. qualification-file（先上傳文件，順序不影響 TapPay 審查）
+    if (body.document_paths && Object.keys(body.document_paths).length > 0) {
+      const fileRes = await fetch(
+        `${SUPABASE_URL}/functions/v1/qualification-file`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
+          body: JSON.stringify({
+            partner_account: body.partner_account,
+            partner_key,
+            merchant_id,
+            document_paths: body.document_paths,
+            platform_key: tappayPlatformKey,
+          }),
+        }
+      )
+
+      const fileData = await fileRes.json()
+      if (!fileRes.ok || fileData.error) {
+        throw new Error(fileData.error ?? 'qualification-file API 失敗')
+      }
+    }
+
+    // 5. additional（固定 is_complete: true — TapPay 以此欄位識別進件完成）
     const additionalRes = await fetch(
       `${SUPABASE_URL}/functions/v1/additional`,
       {
@@ -130,7 +153,7 @@ export async function POST(request: NextRequest) {
           online_credit_card_info: body.online_credit_card_info,
           offline_credit_card_info: body.offline_credit_card_info,
           cvscom_info: body.cvscom_info,
-          is_complete: !body.document_paths || Object.keys(body.document_paths).length === 0,
+          is_complete: true,
           platform_key: tappayPlatformKey,
         }),
       }
@@ -141,7 +164,7 @@ export async function POST(request: NextRequest) {
       throw new Error(additionalData.error ?? 'additional API 失敗')
     }
 
-    // 5. 儲存快速審查頁面資料
+    // 6. 儲存快速審查頁面資料
     if (body.online_credit_card_info?.use_shop_page && body.shop_page_info) {
       const shopInfo = body.shop_page_info
       const imagePaths: (string | null)[] = Array.isArray(body.product_image_paths) ? body.product_image_paths : []
@@ -168,29 +191,6 @@ export async function POST(request: NextRequest) {
         service_email: shopInfo.service_email,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'partner_account' })
-    }
-
-    // 6. qualification-file
-    if (body.document_paths && Object.keys(body.document_paths).length > 0) {
-      const fileRes = await fetch(
-        `${SUPABASE_URL}/functions/v1/qualification-file`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
-          body: JSON.stringify({
-            partner_account: body.partner_account,
-            partner_key,
-            merchant_id,
-            document_paths: body.document_paths,
-            platform_key: tappayPlatformKey,
-          }),
-        }
-      )
-
-      const fileData = await fileRes.json()
-      if (!fileRes.ok || fileData.error) {
-        throw new Error(fileData.error ?? 'qualification-file API 失敗')
-      }
     }
 
     // Bust dashboard caches so the new merchant appears immediately
