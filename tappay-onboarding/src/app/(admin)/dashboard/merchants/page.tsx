@@ -5,8 +5,9 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import Link from 'next/link'
 import type { MerchantStatus } from '@/types/merchant'
 import { INDUSTRY_LABELS } from '@/types/merchant'
-import { Search, Filter } from 'lucide-react'
+import { Search, ArrowRight, ChevronRight } from 'lucide-react'
 import type { Merchant } from '@/types/merchant'
+import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,9 +34,7 @@ export default async function MerchantsPage({
   const params = await searchParams
 
   if (isPreview) {
-    const user = { email: 'admin@tappay.tw' }
-    const merchants = PREVIEW_MERCHANTS
-    return renderPage(user, merchants, params)
+    return renderPage(PREVIEW_MERCHANTS, params)
   }
 
   const supabase = await createClient()
@@ -44,7 +43,6 @@ export default async function MerchantsPage({
   const role = user?.user_metadata?.role
   const isSuperAdmin = role === 'super_admin'
 
-  // super_admin 用 service role（無 RLS 限制），platform merchant 用自己的 session
   const { createAdminClient } = await import('@/lib/supabase/server')
   const queryClient = isSuperAdmin ? createAdminClient() : supabase
 
@@ -53,7 +51,6 @@ export default async function MerchantsPage({
     .select('id, partner_account, company_name, company_name_english, merchant_type, industry_code, status, tappay_status_code, tappay_opinion, submitted_at, created_at, platform_id')
     .order('created_at', { ascending: false })
 
-  // platform merchant 只看自己平台的商戶
   if (!isSuperAdmin) {
     const { data: platform } = await supabase
       .from('platforms')
@@ -74,125 +71,186 @@ export default async function MerchantsPage({
   }
 
   const { data: merchants } = await query as { data: Merchant[] | null }
-  return renderPage(user, merchants ?? [], params)
+  return renderPage(merchants ?? [], params)
 }
 
-function renderPage(
-  user: { email?: string | null } | null,
-  merchants: Merchant[],
-  params: SearchParams
-) {
-  const statusOptions: { value: string; label: string }[] = [
-    { value: '', label: '全部' },
-    { value: 'DRAFT', label: '草稿' },
-    { value: 'SUBMITTED', label: '已進件' },
-    { value: 'UNDER_REVIEW', label: '審核中' },
-    { value: 'PENDING_SUPPLEMENT', label: '待補件' },
-    { value: 'APPROVED', label: '已通過' },
-    { value: 'REJECTED', label: '未通過' },
-    { value: 'MERCHANT_CREATED', label: '商代已建立' },
-  ]
+const STATUS_TABS = [
+  { value: '', label: '全部' },
+  { value: 'SUBMITTED', label: '已進件' },
+  { value: 'UNDER_REVIEW', label: '審核中' },
+  { value: 'PENDING_SUPPLEMENT', label: '待補件' },
+  { value: 'SUPPLEMENTED', label: '已補件' },
+  { value: 'APPROVED', label: '已通過' },
+  { value: 'MERCHANT_CREATED', label: '商代已建立' },
+  { value: 'REJECTED', label: '未通過' },
+  { value: 'DRAFT', label: '草稿' },
+]
+
+function renderPage(merchants: Merchant[], params: SearchParams) {
+  const activeStatus = params.status ?? ''
 
   return (
     <div>
-      <Topbar title="商戶管理" description={`共 ${merchants?.length ?? 0} 筆`} />
+      <Topbar
+        title="商戶管理"
+        description={`${merchants?.length ?? 0} 筆`}
+      />
 
       <div className="p-6 space-y-4">
-        {/* Filters */}
-        <Card className="p-4 rounded-2xl border-gray-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <form className="flex gap-3 flex-1">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  name="q"
-                  defaultValue={params.q}
-                  placeholder="搜尋帳號或公司名稱..."
-                  className="w-full h-9 pl-9 pr-3 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <select
-                  name="status"
-                  defaultValue={params.status ?? ''}
-                  className="h-9 px-3 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none"
+
+        {/* Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Status Pill Tabs */}
+          <div className="flex flex-wrap gap-1.5">
+            {STATUS_TABS.map((tab) => {
+              const isActive = activeStatus === tab.value
+              return (
+                <Link
+                  key={tab.value}
+                  href={`/dashboard/merchants${tab.value ? `?status=${tab.value}` : ''}`}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150',
+                    isActive
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300 hover:text-gray-800'
+                  )}
                 >
-                  {statusOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="submit"
-                className="h-9 px-4 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800"
-              >
-                搜尋
-              </button>
-            </form>
+                  {tab.label}
+                </Link>
+              )
+            })}
           </div>
-        </Card>
+
+          {/* Search */}
+          <form className="flex gap-2 ml-auto" method="get" action="/dashboard/merchants">
+            {activeStatus && (
+              <input type="hidden" name="status" value={activeStatus} />
+            )}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                name="q"
+                defaultValue={params.q}
+                placeholder="搜尋帳號或公司名稱"
+                className="w-52 h-8 pl-8 pr-3 rounded-lg border border-gray-200 text-xs bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 placeholder:text-gray-400"
+              />
+            </div>
+            <button
+              type="submit"
+              className="h-8 px-3.5 rounded-lg text-xs font-medium text-white transition-colors"
+              style={{ background: '#4f46e5' }}
+            >
+              搜尋
+            </button>
+            {params.q && (
+              <Link
+                href={`/dashboard/merchants${activeStatus ? `?status=${activeStatus}` : ''}`}
+                className="h-8 px-3 rounded-lg text-xs font-medium text-gray-500 bg-white border border-gray-200 flex items-center hover:border-gray-300"
+              >
+                清除
+              </Link>
+            )}
+          </form>
+        </div>
 
         {/* Table */}
-        <Card className="rounded-2xl border-gray-200 shadow-sm overflow-hidden">
+        <Card className="rounded-2xl border-gray-200/60 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">商戶</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">商家類型</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">產業</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">狀態</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">進件日期</th>
-                  <th className="px-4 py-3"></th>
+                <tr style={{ borderBottom: '1px solid rgba(243,244,246,1)', background: 'rgba(249,250,251,0.8)' }}>
+                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">商戶</th>
+                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">類型</th>
+                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">產業</th>
+                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">狀態</th>
+                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">進件日期</th>
+                  <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody>
                 {(merchants ?? []).map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3.5">
+                  <tr
+                    key={m.id}
+                    className="transition-colors hover:bg-indigo-50/30 group"
+                    style={{ borderBottom: '1px solid rgba(243,244,246,0.8)' }}
+                  >
+                    <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-semibold text-gray-600">
-                            {(m.company_name ?? m.partner_account ?? '').slice(0, 2)}
-                          </span>
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                          style={{
+                            background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
+                            color: '#6366f1',
+                          }}
+                        >
+                          {(m.company_name ?? m.partner_account ?? '').slice(0, 2)}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{m.company_name ?? '—'}</p>
-                          <p className="text-xs text-gray-400">{m.partner_account}</p>
+                          <p className="text-xs text-gray-400 font-mono mt-0.5">{m.partner_account}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600">
                         {m.merchant_type === 'E' ? '法人' : m.merchant_type === 'P' ? '自然人' : '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-600 text-xs">
-                      {INDUSTRY_LABELS[m.industry_code as keyof typeof INDUSTRY_LABELS] ?? m.industry_code ?? '—'}
+                    <td className="px-4 py-3.5">
+                      <span className="text-xs text-gray-600">
+                        {INDUSTRY_LABELS[m.industry_code as keyof typeof INDUSTRY_LABELS] ?? m.industry_code ?? '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <StatusBadge status={m.status as MerchantStatus} />
+                      <div>
+                        <StatusBadge status={m.status as MerchantStatus} />
+                        {m.tappay_opinion && (
+                          <p className="text-[10px] text-orange-600 mt-1 max-w-[160px] truncate" title={m.tappay_opinion}>
+                            {m.tappay_opinion}
+                          </p>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-400 text-xs">
-                      {m.submitted_at
-                        ? new Date(m.submitted_at).toLocaleDateString('zh-TW')
-                        : '未進件'}
+                    <td className="px-4 py-3.5">
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {m.submitted_at
+                          ? new Date(m.submitted_at).toLocaleDateString('zh-TW')
+                          : <span className="text-gray-300">未進件</span>
+                        }
+                      </span>
                     </td>
                     <td className="px-4 py-3.5">
                       <Link
                         href={`/dashboard/merchants/${m.id}`}
-                        className="text-xs text-gray-500 hover:text-gray-900 font-medium"
+                        className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors group-hover:bg-indigo-100"
                       >
-                        查看 →
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 transition-colors" />
                       </Link>
                     </td>
                   </tr>
                 ))}
                 {(!merchants || merchants.length === 0) && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">
-                      {params.q || params.status ? '找不到符合條件的商戶' : '尚無商戶資料'}
+                    <td colSpan={6} className="px-5 py-14 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(243,244,246,1)' }}
+                        >
+                          <Search className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {params.q || params.status ? '找不到符合條件的商戶' : '尚無商戶資料'}
+                        </p>
+                        {(params.q || params.status) && (
+                          <Link
+                            href="/dashboard/merchants"
+                            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 mt-1"
+                          >
+                            清除篩選 <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}

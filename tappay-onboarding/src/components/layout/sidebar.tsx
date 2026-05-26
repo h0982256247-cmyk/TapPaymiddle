@@ -10,7 +10,6 @@ import {
   Bell,
   Settings,
   LogOut,
-  ChevronRight,
   Zap,
   Loader2,
 } from 'lucide-react'
@@ -52,7 +51,6 @@ export function Sidebar() {
   const [isPending, startTransition] = useTransition()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
-  // 頁面切換完成後清除 pending 狀態
   useEffect(() => {
     if (pendingHref && (pathname === pendingHref || pathname.startsWith(pendingHref + '/'))) {
       setPendingHref(null)
@@ -66,22 +64,25 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-gray-100 flex flex-col">
+    <aside className="fixed inset-y-0 left-0 z-50 w-60 flex flex-col" style={{ background: '#0d1117' }}>
       {/* Logo */}
-      <div className="h-14 flex items-center px-5 border-b border-gray-100">
+      <div className="h-14 flex items-center px-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
             <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900 leading-tight">TapPay</p>
-            <p className="text-[10px] text-gray-400 leading-tight">商戶進件系統</p>
+            <p className="text-sm font-semibold text-white leading-tight">TapPay</p>
+            <p className="text-[10px] leading-tight" style={{ color: 'rgba(148,163,184,0.6)' }}>商戶進件系統</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-2.5 py-4 space-y-0.5 overflow-y-auto">
+        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.35)' }}>
+          主選單
+        </p>
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -98,32 +99,42 @@ export function Sidebar() {
                 }
               }}
               className={cn(
-                'group flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-150',
+                'group relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150',
                 isHighlighted
-                  ? 'bg-gray-100 text-gray-900 font-medium'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'font-medium'
+                  : 'hover:bg-white/[0.04]'
               )}
+              style={isHighlighted
+                ? { background: 'rgba(99,102,241,0.15)', color: 'white' }
+                : { color: 'rgba(148,163,184,0.7)' }
+              }
             >
-              <div className="flex items-center gap-2.5">
-                {isLoading
-                  ? <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-                  : <Icon className={cn('w-4 h-4', isHighlighted ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600')} />
-                }
-                {item.label}
-              </div>
-              {isHighlighted && !isLoading && <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
+              {isHighlighted && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full"
+                  style={{ background: '#818cf8' }}
+                />
+              )}
+              {isLoading
+                ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(148,163,184,0.6)' }} />
+                : <Icon
+                    className="w-4 h-4 transition-colors duration-150"
+                    style={{ color: isHighlighted ? '#818cf8' : 'rgba(148,163,184,0.5)' }}
+                  />
+              }
+              {item.label}
             </Link>
           )
         })}
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-gray-100">
+      <div className="px-2.5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all duration-150"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:bg-red-500/10 hover:text-red-300 text-slate-400/70"
         >
-          <LogOut className="w-4 h-4 text-gray-400" />
+          <LogOut className="w-4 h-4" />
           登出
         </button>
       </div>
