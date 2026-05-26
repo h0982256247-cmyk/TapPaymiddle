@@ -179,7 +179,7 @@ export function FileUpload({
                 </div>
                 <span className="text-xs text-gray-400 flex-shrink-0">{formatSize(file.size)}</span>
                 {isUploadedFile(file)
-                  ? <Cloud className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" title="已上傳至雲端" />
+                  ? <Cloud className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   : <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                 }
                 <button
