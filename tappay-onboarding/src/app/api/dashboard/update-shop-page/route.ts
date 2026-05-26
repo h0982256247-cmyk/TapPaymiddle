@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
       upsertData.product_name = (first as Record<string, unknown>).product_name ?? null
       upsertData.product_price = (first as Record<string, unknown>).product_price ?? null
       upsertData.product_description = (first as Record<string, unknown>).product_description ?? null
+      // Sync legacy single-product image field with first product
+      upsertData.product_image_path = (first as Record<string, unknown>).product_image_path ?? null
     }
 
     const { error } = await admin
