@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { Sidebar } from '@/components/layout/sidebar'
+import { getAuthContext } from '@/lib/auth-context'
 
 const isPreview = process.env.PREVIEW_MODE === 'true'
 
@@ -11,24 +11,18 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   if (!isPreview) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // getAuthContext uses React.cache() — deduplicated across layout + page in same render tree
+    // getSession() reads from cookie (already validated by middleware) — no extra network call
+    const { user, isSuperAdmin, platformId } = await getAuthContext()
 
     if (!user) redirect('/login')
 
-    const role = user.user_metadata?.role
-
-    // super_admin 以外的使用者（no role）需要先設定平台
-    if (role !== 'super_admin') {
+    // non-super_admin users must have a platform configured
+    if (!isSuperAdmin && platformId === null) {
       const headersList = await headers()
       const pathname = headersList.get('x-pathname') ?? ''
       if (!pathname.startsWith('/dashboard/settings')) {
-        const { data: platform } = await supabase
-          .from('platforms')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle()
-        if (!platform) redirect('/dashboard/settings')
+        redirect('/dashboard/settings')
       }
     }
   }
