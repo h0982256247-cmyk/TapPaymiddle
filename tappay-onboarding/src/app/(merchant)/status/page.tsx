@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { CheckCircle2, Clock, AlertCircle, XCircle, Zap } from 'lucide-react'
 import type { MerchantStatus, PaymentMethod, Merchant, MerchantPaymentMethod } from '@/types/merchant'
 import { PAYMENT_METHOD_LABELS } from '@/types/merchant'
+import { NewApplicationButton } from '@/components/shared/new-application-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,19 +37,33 @@ export default async function StatusPage({
 
   const paymentMethods = merchant.merchant_payment_methods ?? []
 
+  // 取得平台 slug，供「我要進件」按鈕導向正確的進件頁
+  let platformSlug: string | null = null
+  if (merchant.platform_id) {
+    const { data: platform } = await supabase
+      .from('platforms')
+      .select('slug')
+      .eq('id', merchant.platform_id)
+      .single()
+    platformSlug = platform?.slug ?? null
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gray-900 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gray-900 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-base font-semibold text-gray-900">申請進度</h1>
+                <p className="text-xs text-gray-400">TapPay 商戶進件申請</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-base font-semibold text-gray-900">申請進度</h1>
-              <p className="text-xs text-gray-400">TapPay 商戶進件申請</p>
-            </div>
+            {platformSlug && <NewApplicationButton platformSlug={platformSlug} />}
           </div>
         </div>
       </div>
