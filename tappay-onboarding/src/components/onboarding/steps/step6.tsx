@@ -17,6 +17,8 @@ interface DocumentConfig {
   /** 動態必填判斷，優先於 required */
   requiredCondition?: (data: Partial<OnboardingFormData>) => boolean
   multiple?: boolean
+  /** TapPay 允許的最大檔案數量 */
+  maxFiles?: number
   /** 需佔滿整行 */
   wide?: boolean
   /** 顯示條件 */
@@ -47,10 +49,11 @@ const DOCUMENT_CONFIGS: DocumentConfig[] = [
   {
     key: 'company_certificate_document',
     label: '公司證明文件',
-    hint: '可上傳多份',
+    hint: '最多 2 份',
     description: '股份公司 → 變更事項登記表　獨資 → 商業登記抄本　法人 → 法人登記證',
     required: true,
     multiple: true,
+    maxFiles: 2,
     wide: true,
     condition: (data) => data.merchant_type === 'E',
   },
@@ -111,6 +114,7 @@ const DOCUMENT_CONFIGS: DocumentConfig[] = [
     hint: '最多 2 份',
     required: false,
     multiple: true,
+    maxFiles: 2,
   },
 ]
 
@@ -175,6 +179,7 @@ export function Step6() {
                     description={doc.description}
                     required={getRequired(doc)}
                     multiple={doc.multiple}
+                    maxFiles={doc.maxFiles}
                     value={field.value as File | File[] | null}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
@@ -205,6 +210,7 @@ export function Step6() {
                       description={doc.description}
                       required={false}
                       multiple={doc.multiple}
+                      maxFiles={doc.maxFiles}
                       value={field.value as File | File[] | null}
                       onChange={field.onChange}
                       error={fieldState.error?.message}

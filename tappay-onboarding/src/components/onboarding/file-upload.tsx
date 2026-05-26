@@ -14,6 +14,8 @@ interface FileUploadProps {
   required?: boolean
   accept?: string
   multiple?: boolean
+  /** 多檔上傳時的最大數量限制 */
+  maxFiles?: number
   value?: File | File[] | null
   onChange: (file: File | File[] | null) => void
   error?: string
@@ -27,6 +29,7 @@ export function FileUpload({
   required,
   accept = '.jpg,.jpeg,.png,.pdf',
   multiple = false,
+  maxFiles,
   value,
   onChange,
   error,
@@ -42,7 +45,14 @@ export function FileUpload({
     const fileArray = Array.from(newFiles)
     const validationError = validateFile(fileArray[0])
     if (validationError) return
-    onChange(multiple ? fileArray : fileArray[0])
+
+    if (multiple) {
+      const merged = [...files, ...fileArray]
+      const limited = maxFiles ? merged.slice(0, maxFiles) : merged
+      onChange(limited)
+    } else {
+      onChange(fileArray[0])
+    }
   }
 
   function removeFile(index: number) {
@@ -142,8 +152,11 @@ export function FileUpload({
                 </button>
               </div>
             ))}
-            {multiple && (
+            {multiple && (!maxFiles || files.length < maxFiles) && (
               <p className="text-xs text-center text-gray-400 pb-1">點擊繼續新增</p>
+            )}
+            {multiple && maxFiles && files.length >= maxFiles && (
+              <p className="text-xs text-center text-orange-500 pb-1">已達上限（最多 {maxFiles} 份）</p>
             )}
           </div>
         )}
