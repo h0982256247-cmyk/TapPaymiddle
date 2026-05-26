@@ -310,6 +310,13 @@ export function OnboardingForm({ initialData, initialStep = 1, merchantId, platf
         }
       }
 
+      // 選擇快速建立審查頁面時，將自動產生的 URL 補入 online_shop_url
+      // （UI 只顯示預覽，未實際寫入表單欄位，需在送出前手動補值）
+      if (data.online_credit_card_info?.use_shop_page && data.partner_account) {
+        const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app').replace(/\/$/, '')
+        data.online_credit_card_info.online_shop_url = `${appBaseUrl}/shop/${data.partner_account}`
+      }
+
       const response = await fetch('/api/submit-onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
