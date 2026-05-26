@@ -194,8 +194,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Bust dashboard caches so the new merchant appears immediately
-    revalidateTag('merchants')
-    revalidateTag('api-logs')
+    revalidateTag('merchants', 'max')
+    revalidateTag('api-logs', 'max')
 
     return NextResponse.json({ success: true, merchant_id })
   } catch (err: unknown) {

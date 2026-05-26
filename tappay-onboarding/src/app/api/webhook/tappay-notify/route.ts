@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Merchant status changed — bust caches so dashboard reflects it immediately
-    revalidateTag('merchants')
-    revalidateTag('notify-logs')
+    revalidateTag('merchants', { expire: 0 })
+    revalidateTag('notify-logs', { expire: 0 })
 
     return NextResponse.json({ status: 0, msg: 'OK' })
   } catch (err: unknown) {
