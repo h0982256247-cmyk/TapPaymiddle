@@ -45,8 +45,8 @@ serve(async (req) => {
     }
     const platformKey = bodyPlatformKey
 
-    // 將 sub_merchant_owner_* 欄位名稱對應到 TapPay 期望的 merchant_owner_* 格式
-    const tappayMerchantOwnerInfo = merchant_owner_info ? {
+    // 法人 (E) → 完整帶入負責人資訊
+    const tappayMerchantOwnerInfoE = merchant_owner_info ? {
       is_foreigner: merchant_owner_info.is_foreigner,
       merchant_owner_name: merchant_owner_info.sub_merchant_owner_name,
       merchant_owner_name_english: merchant_owner_info.sub_merchant_owner_name_english,
@@ -60,6 +60,18 @@ serve(async (req) => {
       id_replacement_category: merchant_owner_info.id_replacement_category,
     } : undefined
 
+    // 自然人 (P) → 只傳 is_foreigner（頂層傳會被拒；詳細欄位也會被拒 "merchant_owner_name"）
+    const tappayMerchantOwnerInfoP = merchant_owner_info != null
+      ? { is_foreigner: merchant_owner_info.is_foreigner }
+      : undefined
+
+    // company_info 清理：chain_store_type 為空字串時不傳（TapPay 不接受空值）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanCompanyInfo: Record<string, unknown> = { ...(company_info as any) }
+    if (!cleanCompanyInfo.chain_store_type) {
+      delete cleanCompanyInfo.chain_store_type
+    }
+
     // Build BASIC API payload
     const tappayPayload: Record<string, unknown> = {
       platform_key: platformKey,
@@ -67,15 +79,10 @@ serve(async (req) => {
       partner_key,
       merchant_type,
       industry_code,
-      company_info,
+      company_info: cleanCompanyInfo,
       contact_info,
-      // 法人 (E)：merchant_owner_info 放在巢狀物件內（含 is_foreigner 在內）
-      // 自然人 (P)：不傳 merchant_owner_info（會觸發 "Invalid Data Element: merchant_owner_name"）
-      //             但 is_foreigner 須作為頂層欄位傳入
-      merchant_owner_info: merchant_type === 'E' ? tappayMerchantOwnerInfo : undefined,
-      ...(merchant_type === 'P' && merchant_owner_info != null
-        ? { is_foreigner: merchant_owner_info.is_foreigner }
-        : {}),
+      // 法人：完整負責人物件；自然人：僅 is_foreigner（置於 merchant_owner_info 內）
+      merchant_owner_info: merchant_type === 'E' ? tappayMerchantOwnerInfoE : tappayMerchantOwnerInfoP,
       bank_info,
     }
 
