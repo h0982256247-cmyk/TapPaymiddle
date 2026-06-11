@@ -69,8 +69,10 @@ serve(async (req) => {
       industry_code,
       company_info,
       contact_info,
-      // 法人 (E) 與自然人 (P) 皆需帶入負責人資訊
-      merchant_owner_info: tappayMerchantOwnerInfo,
+      // 僅法人 (E) 需要帶入負責人資訊（merchant_owner_info）
+      // 自然人 (P) 本身即為商家主體，TapPay BASIC API 不接受此欄位
+      // → 傳入時會回傳 "Invalid Data Element: merchant_owner_name"
+      merchant_owner_info: merchant_type === 'E' ? tappayMerchantOwnerInfo : undefined,
       bank_info,
     }
 
