@@ -55,9 +55,10 @@ serve(async (req) => {
       company_name,
     }
 
-    // create-partner-account 只接受 vat_number（法人）
-    // id_number 屬於負責人資料，不在此 endpoint 送出
+    // 法人帶 vat_number（統一編號），個人戶帶 id_number（身分證號碼）
+    // TapPay 要求二擇一，否則回傳 "vat_number and id_number can't be both empty"
     if (vat_number) tappayPayload.vat_number = vat_number
+    if (id_number) tappayPayload.id_number = id_number
 
     // Call TapPay API
     const tappayResponse = await tapPayRequest(

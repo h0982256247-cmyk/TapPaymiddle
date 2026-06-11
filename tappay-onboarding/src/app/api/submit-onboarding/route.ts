@@ -64,8 +64,13 @@ export async function POST(request: NextRequest) {
           merchant_id: body.merchant_id,
           platform_key: tappayPlatformKey,
           platform_id: platformId,
+          // 法人：帶入統一編號；個人戶：帶入身分證號碼
+          // TapPay create-partner-account 要求二擇一，否則 Invalid Data Element
           ...(body.merchant_type === 'E' && body.register_info?.vat_number
             ? { vat_number: body.register_info.vat_number }
+            : {}),
+          ...(body.merchant_type === 'P' && body.merchant_owner_info?.sub_merchant_owner_id
+            ? { id_number: body.merchant_owner_info.sub_merchant_owner_id }
             : {}),
         }),
       }
