@@ -130,7 +130,11 @@ export async function POST(request: NextRequest) {
 
     const basicData = await basicRes.json()
     if (!basicRes.ok || basicData.error) {
-      throw new Error(basicData.error ?? 'basic API 失敗')
+      // 把 edge function 回傳的 debug 資訊一起丟回前端
+      const debugSuffix = basicData.debug_sent_merchant_owner_info
+        ? ` | sent: ${JSON.stringify(basicData.debug_sent_merchant_owner_info)}`
+        : ''
+      throw new Error(`${basicData.error ?? 'basic API 失敗'}${debugSuffix}`)
     }
 
     // 4. qualification-file（先上傳文件，順序不影響 TapPay 審查）

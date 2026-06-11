@@ -45,25 +45,46 @@ serve(async (req) => {
     }
     const platformKey = bodyPlatformKey
 
-    // 法人 (E) → 完整帶入負責人資訊
-    const tappayMerchantOwnerInfoE = merchant_owner_info ? {
-      is_foreigner: merchant_owner_info.is_foreigner,
-      merchant_owner_name: merchant_owner_info.sub_merchant_owner_name,
-      merchant_owner_name_english: merchant_owner_info.sub_merchant_owner_name_english,
-      merchant_owner_id: merchant_owner_info.sub_merchant_owner_id,
-      merchant_owner_birthday: merchant_owner_info.sub_merchant_owner_birthday,
-      merchant_owner_postal_code: merchant_owner_info.sub_merchant_owner_postal_code,
-      merchant_owner_city: merchant_owner_info.sub_merchant_owner_city,
-      merchant_owner_address: merchant_owner_info.sub_merchant_owner_address,
-      id_issued_date: merchant_owner_info.id_issued_date,
-      id_issued_place: merchant_owner_info.id_issued_place,
-      id_replacement_category: merchant_owner_info.id_replacement_category,
-    } : undefined
+    // 法人 (E) 與 自然人 (P) → 完整帶入負責人資訊
+    // 注意：merchant_owner_name（中文姓名）為必填，空值會被 TapPay 拒絕（6005）
+    // 只傳有值的欄位，避免 TapPay 因為空字串或 null 拒絕
+    const buildMerchantOwnerInfo = (info: Record<string, unknown>) => {
+      const obj: Record<string, unknown> = {
+        is_foreigner: info.is_foreigner ?? false,
+      }
+      if (info.sub_merchant_owner_name) obj.merchant_owner_name = info.sub_merchant_owner_name
+      if (info.sub_merchant_owner_name_english) obj.merchant_owner_name_english = info.sub_merchant_owner_name_english
+      if (info.sub_merchant_owner_id) obj.merchant_owner_id = info.sub_merchant_owner_id
+      if (info.sub_merchant_owner_birthday) obj.merchant_owner_birthday = info.sub_merchant_owner_birthday
+      if (info.sub_merchant_owner_postal_code) obj.merchant_owner_postal_code = info.sub_merchant_owner_postal_code
+      if (info.sub_merchant_owner_city) obj.merchant_owner_city = info.sub_merchant_owner_city
+      if (info.sub_merchant_owner_address) obj.merchant_owner_address = info.sub_merchant_owner_address
+      if (info.id_issued_date) obj.id_issued_date = info.id_issued_date
+      if (info.id_issued_place) obj.id_issued_place = info.id_issued_place
+      if (info.id_replacement_category) obj.id_replacement_category = info.id_replacement_category
+      return obj
+    }
 
-    // 自然人 (P) → 只傳 is_foreigner（頂層傳會被拒；詳細欄位也會被拒 "merchant_owner_name"）
-    const tappayMerchantOwnerInfoP = merchant_owner_info != null
-      ? { is_foreigner: merchant_owner_info.is_foreigner }
+    const tappayMerchantOwnerInfoE = merchant_owner_info
+      ? buildMerchantOwnerInfo(merchant_owner_info as Record<string, unknown>)
       : undefined
+
+    const tappayMerchantOwnerInfoP = merchant_owner_info
+      ? buildMerchantOwnerInfo(merchant_owner_info as Record<string, unknown>)
+      : undefined
+
+    // 防護：若 merchant_owner_name 為空，提前回傳明確錯誤（避免送空值給 TapPay）
+    const builtOwnerInfo = merchant_type === 'E' ? tappayMerchantOwnerInfoE : tappayMerchantOwnerInfoP
+    if (builtOwnerInfo && !builtOwnerInfo.merchant_owner_name) {
+      return new Response(JSON.stringify({
+        error: '負責人姓名（merchant_owner_name）不得為空',
+        debug: {
+          merchant_type,
+          received_merchant_owner_info_keys: merchant_owner_info ? Object.keys(merchant_owner_info as object) : null,
+          sub_merchant_owner_name_value: (merchant_owner_info as Record<string, unknown>)?.sub_merchant_owner_name ?? 'MISSING',
+        },
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // company_info 清理：chain_store_type 為空字串時不傳（TapPay 不接受空值）
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,7 +102,7 @@ serve(async (req) => {
       industry_code,
       company_info: cleanCompanyInfo,
       contact_info,
-      // 法人：完整負責人物件；自然人：僅 is_foreigner（置於 merchant_owner_info 內）
+      // 法人 / 自然人：完整負責人物件（merchant_owner_name 必填）
       merchant_owner_info: merchant_type === 'E' ? tappayMerchantOwnerInfoE : tappayMerchantOwnerInfoP,
       bank_info,
     }
@@ -130,8 +151,14 @@ serve(async (req) => {
     })
 
     if (!isSuccess) {
+      // 失敗時把 merchant_owner_info 實際送出的內容回傳，方便除錯
+      const debugOwnerInfo = tappayPayload.merchant_owner_info
       return new Response(
-        JSON.stringify({ error: tappayResponse.msg ?? 'BASIC API 失敗' }),
+        JSON.stringify({
+          error: tappayResponse.msg ?? 'BASIC API 失敗',
+          debug_sent_merchant_owner_info: debugOwnerInfo,
+          debug_tappay_status: tappayResponse.status,
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
