@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Save, Eye, EyeOff, Copy, ExternalLink } from 'lucide-react'
 
@@ -17,13 +18,17 @@ interface Props {
 }
 
 export function PlatformSettingsForm({ initialData, baseUrl }: Props) {
+  const router = useRouter()
   const [name, setName] = useState(initialData?.name ?? '')
   const [slug, setSlug] = useState(initialData?.slug ?? '')
   const [platformKey, setPlatformKey] = useState(initialData?.tappay_platform_key ?? '')
   const [showKey, setShowKey] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savedSlug, setSavedSlug] = useState(initialData?.slug ?? '')
 
   const onboardingUrl = slug ? `${baseUrl}/onboarding/${slug}` : null
+  const savedUrl = savedSlug ? `${baseUrl}/onboarding/${savedSlug}` : null
+  const hasUnsavedChanges = slug !== savedSlug
 
   async function handleSave() {
     setSaving(true)
@@ -36,6 +41,8 @@ export function PlatformSettingsForm({ initialData, baseUrl }: Props) {
       const result = await res.json()
       if (!res.ok) throw new Error(result.error)
       toast.success('平台設定已儲存')
+      setSavedSlug(slug)
+      router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : '儲存失敗')
     } finally {
@@ -44,6 +51,23 @@ export function PlatformSettingsForm({ initialData, baseUrl }: Props) {
   }
 
   return (
+    <>
+      {/* 目前已啟用的進件網址 */}
+      {savedUrl && (
+        <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50">
+          <p className="text-xs text-blue-700">
+            目前已啟用的進件網址：
+            <span className="font-mono font-semibold ml-1">{savedUrl}</span>
+            {hasUnsavedChanges && (
+              <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                有未儲存變更
+              </span>
+            )}
+            <span className="block mt-1 text-blue-600/80">請將此網址提供給你的商戶填寫進件申請。</span>
+          </p>
+        </div>
+      )}
+
     <div className="p-5 rounded-2xl border border-gray-200 bg-white space-y-5">
       <div>
         <p className="text-sm font-semibold text-gray-900 mb-0.5">平台設定</p>
@@ -104,10 +128,12 @@ export function PlatformSettingsForm({ initialData, baseUrl }: Props) {
         </div>
       </div>
 
-      {/* 進件網址預覽 */}
+      {/* 進件網址預覽（即時反映 slug 變更） */}
       {onboardingUrl && (
         <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
-          <p className="text-xs font-medium text-gray-600">你的專屬進件網址</p>
+          <p className="text-xs font-medium text-gray-600">
+            {hasUnsavedChanges ? '儲存後將變更為' : '你的專屬進件網址'}
+          </p>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-gray-700 flex-1 truncate">{onboardingUrl}</span>
             <button
@@ -134,5 +160,6 @@ export function PlatformSettingsForm({ initialData, baseUrl }: Props) {
         {saving ? '儲存中...' : '儲存設定'}
       </button>
     </div>
+    </>
   )
 }

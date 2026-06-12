@@ -38,16 +38,6 @@ export default async function SettingsPage() {
     <div>
       <Topbar title="平台設定" />
       <div className="p-6 max-w-2xl space-y-4">
-        <div className="p-1 rounded-2xl border border-blue-100 bg-blue-50">
-          <p className="text-xs text-blue-700 px-4 py-2">
-            設定完成後，你的專屬進件網址為：
-            <span className="font-mono font-semibold ml-1">
-              {baseUrl}/onboarding/{platform?.slug ?? '[識別碼]'}
-            </span>
-            ，請將此網址提供給你的商戶填寫進件申請。
-          </p>
-        </div>
-
         <PlatformSettingsForm initialData={platform ?? null} baseUrl={baseUrl} />
       </div>
     </div>
