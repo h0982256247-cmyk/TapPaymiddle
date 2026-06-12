@@ -93,7 +93,7 @@ export function DatePicker({
   maxDate = new Date(),
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<'day' | 'yearMonth'>('day')
+  const [viewMode, setViewMode] = useState<'day' | 'yearMonth' | 'year'>('day')
 
   // 將 schema string 轉換成 Date
   const selected: Date | undefined =
@@ -103,6 +103,10 @@ export function DatePicker({
   const [calendarMonth, setCalendarMonth] = useState<Date>(selected ?? new Date())
   // 年月選擇器顯示的年份
   const [yearView, setYearView] = useState<number>((selected ?? new Date()).getFullYear())
+  // 年份格子顯示的起點（一次顯示 12 年）
+  const [yearGridStart, setYearGridStart] = useState<number>(
+    Math.floor((selected ?? new Date()).getFullYear() / 12) * 12
+  )
 
   // 顯示用文字
   const displayText = selected
@@ -129,6 +133,7 @@ export function DatePicker({
       const base = selected ?? new Date()
       setCalendarMonth(base)
       setYearView(base.getFullYear())
+      setYearGridStart(Math.floor(base.getFullYear() / 12) * 12)
       setViewMode('day')
     }
   }
@@ -138,6 +143,16 @@ export function DatePicker({
     setCalendarMonth(newMonth)
     setViewMode('day')
   }
+
+  function handleYearSelect(year: number) {
+    setYearView(year)
+    setViewMode('yearMonth')
+  }
+
+  // 年份格子顯示的範圍（12 年一頁）
+  const yearGrid = Array.from({ length: 12 }, (_, i) => yearGridStart + i)
+  const maxYear = maxDate?.getFullYear() ?? new Date().getFullYear()
+  const minYear = minDate?.getFullYear() ?? 1900
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -171,21 +186,84 @@ export function DatePicker({
         className="w-auto p-0 rounded-2xl overflow-hidden"
       >
 
-        {/* 年月選擇器 */}
-        {viewMode === 'yearMonth' ? (
+        {/* 年份格子（一次顯示 12 年） */}
+        {viewMode === 'year' ? (
           <div className="p-3 w-[280px]">
-            {/* 年份導覽 */}
+            {/* 上一頁／下一頁 12 年 */}
             <div className="flex items-center justify-between mb-3 px-1">
               <button
                 type="button"
-                onClick={() => setYearView(y => y - 1)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+                onClick={() => setYearGridStart(s => s - 12)}
+                disabled={yearGridStart <= minYear}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-sm font-semibold text-gray-900">
-                {fmt === 'roc7' ? `民國 ${yearView - 1911} 年` : `${yearView} 年`}
+                {fmt === 'roc7'
+                  ? `民國 ${yearGridStart - 1911} – ${yearGridStart + 11 - 1911} 年`
+                  : `${yearGridStart} – ${yearGridStart + 11}`}
               </span>
+              <button
+                type="button"
+                onClick={() => setYearGridStart(s => s + 12)}
+                disabled={yearGridStart + 12 > maxYear}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 年份格子 */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {yearGrid.map((y) => {
+                const isSelected = selected && selected.getFullYear() === y
+                const isDisabled = y < minYear || y > maxYear
+                const isCurrentYear = y === new Date().getFullYear()
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => handleYearSelect(y)}
+                    className={cn(
+                      'h-9 rounded-lg text-sm font-medium transition-colors',
+                      isSelected
+                        ? 'bg-gray-900 text-white'
+                        : isCurrentYear
+                          ? 'text-gray-900 ring-1 ring-gray-300 hover:bg-gray-100'
+                          : 'text-gray-700 hover:bg-gray-100',
+                      isDisabled && 'text-gray-200 cursor-not-allowed hover:bg-transparent'
+                    )}
+                  >
+                    {fmt === 'roc7' ? y - 1911 : y}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : viewMode === 'yearMonth' ? (
+          <div className="p-3 w-[280px]">
+            {/* 年份導覽 — 點中間文字可切到年份格子 */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <button
+                type="button"
+                onClick={() => setYearView(y => y - 1)}
+                disabled={yearView <= minYear}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setYearGridStart(Math.floor(yearView / 12) * 12)
+                  setViewMode('year')
+                }}
+                className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors px-2 py-0.5 rounded"
+              >
+                {fmt === 'roc7' ? `民國 ${yearView - 1911} 年` : `${yearView} 年`}
+              </button>
               <button
                 type="button"
                 onClick={() => setYearView(y => y + 1)}
