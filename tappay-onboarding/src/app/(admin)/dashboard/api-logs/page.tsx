@@ -42,51 +42,51 @@ function renderLogs(logs: ApiLog[]) {
       <Topbar title="API 呼叫紀錄" description={`最近 ${logs.length} 筆`} />
 
       <div className="p-6">
-        <Card className="rounded-2xl border-gray-200 shadow-sm overflow-hidden">
+        <Card className="rounded-3xl border-0 ring-0 shadow-[0_2px_12px_rgba(45,49,66,0.05)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 w-8"></th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">API</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">商戶</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">狀態</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">耗時</th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">時間</th>
+                <tr className="border-b border-[#f1f0f8] bg-[#faf9fe]">
+                  <th className="text-left text-xs font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5 w-8"></th>
+                  <th className="text-left text-xs font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">API</th>
+                  <th className="text-left text-xs font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">商戶</th>
+                  <th className="text-left text-xs font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">狀態</th>
+                  <th className="text-left text-xs font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">耗時</th>
+                  <th className="text-left text-xs font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">時間</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[#f4f3f9]">
                 {logs.map((log) => {
                   const merchant = log.merchants as { partner_account?: string; company_name?: string } | null
                   return (
-                    <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={log.id} className="hover:bg-[#faf9fe] transition-colors">
                       <td className="px-4 py-3">
                         {log.is_success ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         ) : (
                           <XCircle className="w-4 h-4 text-red-500" />
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-700">
+                        <span className="font-mono text-xs bg-[#efecfd] px-2 py-0.5 rounded-md text-[#6a5ae0]">
                           {log.api_name}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-gray-900">{merchant?.company_name ?? '—'}</p>
-                        <p className="text-xs text-gray-400">{log.partner_account}</p>
+                        <p className="text-[#2d3142]">{merchant?.company_name ?? '—'}</p>
+                        <p className="text-xs text-[#a3a7b7]">{log.partner_account}</p>
                       </td>
                       <td className="px-4 py-3">
                         {log.is_success ? (
-                          <span className="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">成功</span>
+                          <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">成功</span>
                         ) : (
                           <span className="text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded-full" title={log.error_message ?? ''}>
                             失敗
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{log.duration_ms}ms</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-[#7e8398] text-xs">{log.duration_ms}ms</td>
+                      <td className="px-4 py-3 text-[#a3a7b7] text-xs">
                         {new Date(log.created_at).toLocaleString('zh-TW', {
                           month: 'short', day: 'numeric',
                           hour: '2-digit', minute: '2-digit',
@@ -97,7 +97,7 @@ function renderLogs(logs: ApiLog[]) {
                 })}
                 {logs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">
+                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-[#a3a7b7]">
                       尚無 API 呼叫紀錄
                     </td>
                   </tr>

@@ -90,10 +90,10 @@ function renderPage(merchants: Merchant[], params: SearchParams, isSuperAdmin = 
                   key={tab.value}
                   href={`/dashboard/merchants${tab.value ? `?status=${tab.value}` : ''}`}
                   className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150',
+                    'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150',
                     isActive
-                      ? 'bg-gray-900 text-white shadow-sm'
-                      : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300 hover:text-gray-800'
+                      ? 'bg-[#7c6bf0] text-white shadow-sm shadow-[#7c6bf0]/30'
+                      : 'bg-white text-[#7e8398] border border-[#eceaf3] hover:border-[#d8d4ec] hover:text-[#2d3142]'
                   )}
                 >
                   {tab.label}
@@ -113,20 +113,20 @@ function renderPage(merchants: Merchant[], params: SearchParams, isSuperAdmin = 
                 name="q"
                 defaultValue={params.q}
                 placeholder="搜尋帳號或公司名稱"
-                className="w-52 h-8 pl-8 pr-3 rounded-lg border border-gray-200 text-xs bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 placeholder:text-gray-400"
+                className="w-52 h-9 pl-8 pr-3 rounded-xl border border-[#eceaf3] text-xs bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7c6bf0]/20 focus:border-[#b9b0f5] placeholder:text-[#a3a7b7]"
               />
             </div>
             <button
               type="submit"
-              className="h-8 px-3.5 rounded-lg text-xs font-medium text-white transition-colors"
-              style={{ background: '#4f46e5' }}
+              className="h-9 px-4 rounded-xl text-xs font-medium text-white transition-colors hover:brightness-110"
+              style={{ background: '#7c6bf0' }}
             >
               搜尋
             </button>
             {params.q && (
               <Link
                 href={`/dashboard/merchants${activeStatus ? `?status=${activeStatus}` : ''}`}
-                className="h-8 px-3 rounded-lg text-xs font-medium text-gray-500 bg-white border border-gray-200 flex items-center hover:border-gray-300"
+                className="h-9 px-3 rounded-xl text-xs font-medium text-[#7e8398] bg-white border border-[#eceaf3] flex items-center hover:border-[#d8d4ec]"
               >
                 清除
               </Link>
@@ -135,50 +135,46 @@ function renderPage(merchants: Merchant[], params: SearchParams, isSuperAdmin = 
         </div>
 
         {/* Table */}
-        <Card className="rounded-2xl border-gray-200/60 bg-white shadow-sm overflow-hidden">
+        <Card className="rounded-3xl border-0 ring-0 bg-white shadow-[0_2px_12px_rgba(45,49,66,0.05)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(243,244,246,1)', background: 'rgba(249,250,251,0.8)' }}>
-                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">商戶</th>
-                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">類型</th>
-                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">產業</th>
-                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">狀態</th>
-                  <th className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">進件日期</th>
-                  <th className="px-4 py-3 w-10"></th>
+                <tr className="bg-[#faf9fe] border-b border-[#f1f0f8]">
+                  <th className="text-left text-[11px] font-semibold text-[#a3a7b7] uppercase tracking-wider px-5 py-3.5">商戶</th>
+                  <th className="text-left text-[11px] font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">類型</th>
+                  <th className="text-left text-[11px] font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">產業</th>
+                  <th className="text-left text-[11px] font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">狀態</th>
+                  <th className="text-left text-[11px] font-semibold text-[#a3a7b7] uppercase tracking-wider px-4 py-3.5">進件日期</th>
+                  <th className="px-4 py-3.5 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {(merchants ?? []).map((m) => (
                   <tr
                     key={m.id}
-                    className="transition-colors hover:bg-indigo-50/30 group"
-                    style={{ borderBottom: '1px solid rgba(243,244,246,0.8)' }}
+                    className="transition-colors hover:bg-[#faf9fe] group border-b border-[#f4f3f9]"
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                          style={{
-                            background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
-                            color: '#6366f1',
-                          }}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+                          style={{ background: 'linear-gradient(135deg, #7c6bf0, #ec5f9e)' }}
                         >
                           {(m.company_name ?? m.partner_account ?? '').slice(0, 2)}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{m.company_name ?? '—'}</p>
-                          <p className="text-xs text-gray-400 font-mono mt-0.5">{m.partner_account}</p>
+                          <p className="font-medium text-[#2d3142]">{m.company_name ?? '—'}</p>
+                          <p className="text-xs text-[#a3a7b7] font-mono mt-0.5">{m.partner_account}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f1f0f8] text-[#7e8398]">
                         {m.merchant_type === 'E' ? '法人' : m.merchant_type === 'P' ? '自然人' : '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-[#7e8398]">
                         {INDUSTRY_LABELS[m.industry_code as keyof typeof INDUSTRY_LABELS] ?? m.industry_code ?? '—'}
                       </span>
                     </td>
@@ -193,19 +189,19 @@ function renderPage(merchants: Merchant[], params: SearchParams, isSuperAdmin = 
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs text-gray-500 tabular-nums">
+                      <span className="text-xs text-[#7e8398] tabular-nums">
                         {m.submitted_at
                           ? new Date(m.submitted_at).toLocaleDateString('zh-TW')
-                          : <span className="text-gray-300">未進件</span>
+                          : <span className="text-[#cfd2dd]">未進件</span>
                         }
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
                       <Link
                         href={`/dashboard/merchants/${m.id}`}
-                        className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors group-hover:bg-indigo-100"
+                        className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors group-hover:bg-[#efecfd]"
                       >
-                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-[#cfd2dd] group-hover:text-[#7c6bf0] transition-colors" />
                       </Link>
                     </td>
                   </tr>
@@ -214,19 +210,16 @@ function renderPage(merchants: Merchant[], params: SearchParams, isSuperAdmin = 
                   <tr>
                     <td colSpan={6} className="px-5 py-14 text-center">
                       <div className="flex flex-col items-center gap-2">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ background: 'rgba(243,244,246,1)' }}
-                        >
-                          <Search className="w-4 h-4 text-gray-400" />
+                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-[#f1f0f8]">
+                          <Search className="w-4 h-4 text-[#a3a7b7]" />
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[#7e8398]">
                           {params.q || params.status ? '找不到符合條件的商戶' : '尚無商戶資料'}
                         </p>
                         {(params.q || params.status) && (
                           <Link
                             href="/dashboard/merchants"
-                            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 mt-1"
+                            className="text-xs text-[#7c6bf0] hover:text-[#6a5ae0] font-medium flex items-center gap-1 mt-1"
                           >
                             清除篩選 <ArrowRight className="w-3 h-3" />
                           </Link>

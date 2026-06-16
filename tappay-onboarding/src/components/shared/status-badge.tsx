@@ -12,7 +12,7 @@ interface StatusBadgeProps {
 // Soft (tinted bg + border) = in-progress states
 const styleMap: Record<string, string> = {
   gray:    'bg-gray-100 text-gray-500 border border-gray-200/80',
-  blue:    'bg-indigo-600 text-white shadow-sm shadow-indigo-200',
+  blue:    'bg-[#7c6bf0] text-white shadow-sm shadow-[#7c6bf0]/30',
   orange:  'bg-orange-500 text-white shadow-sm shadow-orange-200',
   cyan:    'bg-sky-100 text-sky-700 border border-sky-200/80',
   purple:  'bg-violet-100 text-violet-700 border border-violet-200/80',

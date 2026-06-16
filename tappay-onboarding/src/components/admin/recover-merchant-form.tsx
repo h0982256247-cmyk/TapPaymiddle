@@ -77,7 +77,7 @@ export function RecoverMerchantForm() {
             value={partnerAccount}
             onChange={(e) => setPartnerAccount(e.target.value)}
             placeholder="例：eeats365"
-            className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+            className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7c6bf0]/20 focus:border-[#b9b0f5]"
           />
         </div>
 
@@ -92,7 +92,7 @@ export function RecoverMerchantForm() {
             value={partnerKey}
             onChange={(e) => setPartnerKey(e.target.value)}
             placeholder="從 TapPay 後台取得"
-            className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+            className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#7c6bf0]/20 focus:border-[#b9b0f5]"
           />
         </div>
 
@@ -106,7 +106,7 @@ export function RecoverMerchantForm() {
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               placeholder="merchant@example.com"
-              className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+              className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7c6bf0]/20 focus:border-[#b9b0f5]"
             />
           </div>
 
@@ -119,7 +119,7 @@ export function RecoverMerchantForm() {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="XX 有限公司"
-              className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+              className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7c6bf0]/20 focus:border-[#b9b0f5]"
             />
           </div>
         </div>
@@ -133,7 +133,7 @@ export function RecoverMerchantForm() {
             value={platformSlug}
             onChange={(e) => setPlatformSlug(e.target.value)}
             placeholder="例：my-platform"
-            className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+            className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7c6bf0]/20 focus:border-[#b9b0f5]"
           />
         </div>
 
@@ -141,7 +141,7 @@ export function RecoverMerchantForm() {
           type="submit"
           disabled={loading || !partnerAccount || !partnerKey}
           className="w-full h-10 rounded-lg text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: loading ? '#6366f1' : '#4f46e5' }}
+          style={{ background: loading ? '#9d8df5' : '#7c6bf0' }}
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">

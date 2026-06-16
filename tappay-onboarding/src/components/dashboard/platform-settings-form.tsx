@@ -154,7 +154,7 @@ export function PlatformSettingsForm({ initialData, baseUrl }: Props) {
       <button
         onClick={handleSave}
         disabled={saving || !name || !slug || !platformKey}
-        className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 bg-[#7c6bf0] text-white text-sm rounded-xl hover:bg-[#6a5ae0] disabled:opacity-50 transition-colors"
       >
         <Save className="w-4 h-4" />
         {saving ? '儲存中...' : '儲存設定'}

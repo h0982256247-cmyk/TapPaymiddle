@@ -3,7 +3,7 @@ import { Topbar } from '@/components/layout/topbar'
 import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/status-badge'
 import {
-  Users, Activity, CheckCircle2, Clock, AlertCircle, ArrowRight,
+  Users, Activity, CheckCircle2, Clock, AlertCircle, ArrowRight, TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { MerchantStatus } from '@/types/merchant'
@@ -67,6 +67,19 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
 
       <div className="p-6 space-y-5">
 
+        {/* Welcome hero */}
+        <div
+          className="relative overflow-hidden rounded-3xl px-7 py-6 text-white"
+          style={{ background: 'linear-gradient(120deg, #7c6bf0 0%, #9d6bf0 55%, #ec5f9e 130%)' }}
+        >
+          <div className="absolute -top-10 -right-6 w-44 h-44 rounded-full bg-white/10" />
+          <div className="absolute top-10 right-24 w-24 h-24 rounded-full bg-white/10" />
+          <div className="relative">
+            <p className="text-xl font-bold flex items-center gap-2">Hi，歡迎回來 <span aria-hidden>👋</span></p>
+            <p className="text-sm text-white/85 mt-1.5">即時掌握 TapPay 商戶進件與審核狀態</p>
+          </div>
+        </div>
+
         {/* Top Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -75,8 +88,8 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
               value: stats.total,
               sub: `${stats.draft} 份草稿`,
               icon: Users,
-              accent: '#6366f1',
-              bg: 'rgba(99,102,241,0.08)',
+              accent: '#7c6bf0',
+              bg: 'rgba(124,107,240,0.1)',
               href: '/dashboard/merchants',
             },
             {
@@ -84,8 +97,8 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
               value: activeCount,
               sub: `${stats.submitted} 已進件`,
               icon: Clock,
-              accent: '#f59e0b',
-              bg: 'rgba(245,158,11,0.08)',
+              accent: '#f5a524',
+              bg: 'rgba(245,165,36,0.12)',
               href: `/dashboard/merchants?status=SUBMITTED`,
             },
             {
@@ -93,8 +106,8 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
               value: stats.pendingSupplement,
               sub: '需要關注',
               icon: AlertCircle,
-              accent: '#f97316',
-              bg: 'rgba(249,115,22,0.08)',
+              accent: '#ec5f9e',
+              bg: 'rgba(236,95,158,0.1)',
               href: `/dashboard/merchants?status=PENDING_SUPPLEMENT`,
             },
             {
@@ -102,26 +115,32 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
               value: completedCount,
               sub: `${stats.merchantCreated} 商代已建立`,
               icon: CheckCircle2,
-              accent: '#10b981',
-              bg: 'rgba(16,185,129,0.08)',
+              accent: '#46c5ae',
+              bg: 'rgba(70,197,174,0.12)',
               href: `/dashboard/merchants?status=MERCHANT_CREATED`,
             },
           ].map((card) => {
             const Icon = card.icon
             return (
               <Link key={card.label} href={card.href}>
-                <Card className="p-5 rounded-2xl border-gray-200/60 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-                  <div className="flex items-start justify-between mb-3">
+                <Card className="p-5 rounded-3xl border-0 ring-0 bg-white shadow-[0_2px_12px_rgba(45,49,66,0.05)] hover:shadow-[0_6px_20px_rgba(124,107,240,0.12)] transition-shadow cursor-pointer group">
+                  <div className="flex items-start justify-between mb-4">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center"
                       style={{ background: card.bg }}
                     >
                       <Icon className="w-5 h-5" style={{ color: card.accent }} />
                     </div>
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold"
+                      style={{ background: card.bg, color: card.accent }}
+                    >
+                      <TrendingUp className="w-3 h-3" />
+                      {card.sub}
+                    </span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</p>
-                  <p className="text-xs font-medium text-gray-500 mt-0.5">{card.label}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">{card.sub}</p>
+                  <p className="text-[28px] leading-none font-bold text-[#2d3142] tabular-nums">{card.value}</p>
+                  <p className="text-xs font-medium text-[#9296a8] mt-2">{card.label}</p>
                 </Card>
               </Link>
             )
@@ -129,15 +148,15 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
         </div>
 
         {/* Pipeline Tracker */}
-        <Card className="p-5 rounded-2xl border-gray-200/60 bg-white shadow-sm">
+        <Card className="p-5 rounded-3xl border-0 ring-0 bg-white shadow-[0_2px_12px_rgba(45,49,66,0.05)]">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">審核流程看板</h2>
-              <p className="text-xs text-gray-400 mt-0.5">各階段商戶分布</p>
+              <h2 className="text-sm font-semibold text-[#2d3142]">審核流程看板</h2>
+              <p className="text-xs text-[#9296a8] mt-0.5">各階段商戶分布</p>
             </div>
             <Link
               href="/dashboard/merchants"
-              className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              className="flex items-center gap-1 text-xs text-[#7c6bf0] hover:text-[#6a5ae0] font-medium"
             >
               查看全部 <ArrowRight className="w-3 h-3" />
             </Link>
@@ -154,19 +173,19 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
                     />
                   )}
                   <div
-                    className="rounded-xl p-3 text-center transition-all duration-150 group-hover:scale-[1.02]"
+                    className="rounded-2xl p-3 text-center transition-all duration-150 group-hover:scale-[1.02]"
                     style={{
-                      background: step.count > 0 ? 'rgba(99,102,241,0.06)' : 'rgba(249,250,251,1)',
-                      border: step.count > 0 ? '1px solid rgba(99,102,241,0.15)' : '1px solid rgba(229,231,235,0.8)',
+                      background: step.count > 0 ? 'rgba(124,107,240,0.08)' : '#f7f6fb',
+                      border: step.count > 0 ? '1px solid rgba(124,107,240,0.18)' : '1px solid #eceaf3',
                     }}
                   >
                     <p
                       className="text-xl font-bold tabular-nums"
-                      style={{ color: step.count > 0 ? '#4f46e5' : '#9ca3af' }}
+                      style={{ color: step.count > 0 ? '#6a5ae0' : '#b6b9c8' }}
                     >
                       {step.count}
                     </p>
-                    <p className="text-[10px] font-medium text-gray-500 mt-1 leading-tight">{step.label}</p>
+                    <p className="text-[10px] font-medium text-[#9296a8] mt-1 leading-tight">{step.label}</p>
                   </div>
                 </div>
               </Link>
@@ -188,51 +207,48 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Recent Merchants */}
           <div className="lg:col-span-2">
-            <Card className="rounded-2xl border-gray-200/60 bg-white shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(243,244,246,1)' }}>
-                <h2 className="text-sm font-semibold text-gray-900">最新商戶</h2>
+            <Card className="rounded-3xl border-0 ring-0 bg-white shadow-[0_2px_12px_rgba(45,49,66,0.05)] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#f1f0f8]">
+                <h2 className="text-sm font-semibold text-[#2d3142]">最新商戶</h2>
                 <Link
                   href="/dashboard/merchants"
-                  className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                  className="flex items-center gap-1 text-xs text-[#7c6bf0] hover:text-[#6a5ae0] font-medium"
                 >
                   查看全部 <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#f4f3f9]">
                 {(recentMerchants ?? []).map((m) => (
                   <Link
                     key={m.id}
                     href={`/dashboard/merchants/${m.id}`}
-                    className="flex items-center justify-between px-5 py-3 hover:bg-gray-50/80 transition-colors group"
+                    className="flex items-center justify-between px-5 py-3 hover:bg-[#faf9fe] transition-colors group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                        style={{
-                          background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
-                          color: '#6366f1',
-                        }}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+                        style={{ background: 'linear-gradient(135deg, #7c6bf0, #ec5f9e)' }}
                       >
                         {(m.company_name ?? m.partner_account ?? '').slice(0, 2)}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-[#2d3142] truncate">
                           {m.company_name ?? m.partner_account}
                         </p>
-                        <p className="text-xs text-gray-400 font-mono">{m.partner_account}</p>
+                        <p className="text-xs text-[#a3a7b7] font-mono">{m.partner_account}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                       <StatusBadge status={m.status as MerchantStatus} />
-                      <span className="text-xs text-gray-400 tabular-nums">
+                      <span className="text-xs text-[#a3a7b7] tabular-nums">
                         {new Date(m.created_at).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
                       </span>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                      <ArrowRight className="w-3.5 h-3.5 text-[#cfd2dd] group-hover:text-[#7c6bf0] transition-colors" />
                     </div>
                   </Link>
                 ))}
                 {(!recentMerchants || recentMerchants.length === 0) && (
-                  <div className="px-5 py-10 text-center text-sm text-gray-400">
+                  <div className="px-5 py-10 text-center text-sm text-[#a3a7b7]">
                     尚無商戶資料
                   </div>
                 )}
@@ -243,20 +259,20 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
           {/* Right Panel */}
           <div className="space-y-4">
             {/* API Logs */}
-            <Card className="p-5 rounded-2xl border-gray-200/60 bg-white shadow-sm">
+            <Card className="p-5 rounded-3xl border-0 ring-0 bg-white shadow-[0_2px_12px_rgba(45,49,66,0.05)]">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.08)' }}>
-                  <Activity className="w-4 h-4" style={{ color: '#6366f1' }} />
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(124,107,240,0.1)' }}>
+                  <Activity className="w-5 h-5" style={{ color: '#7c6bf0' }} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">API 呼叫紀錄</p>
-                  <p className="text-xs text-gray-400">累計次數</p>
+                  <p className="text-sm font-semibold text-[#2d3142]">API 呼叫紀錄</p>
+                  <p className="text-xs text-[#9296a8]">累計次數</p>
                 </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900 tabular-nums">{apiLogs.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-[#2d3142] tabular-nums">{apiLogs.toLocaleString()}</p>
               <Link
                 href="/dashboard/api-logs"
-                className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-2"
+                className="flex items-center gap-1 text-xs text-[#7c6bf0] hover:text-[#6a5ae0] font-medium mt-2"
               >
                 查看詳細 <ArrowRight className="w-3 h-3" />
               </Link>
@@ -264,7 +280,7 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
 
             {/* Attention Required */}
             {stats.pendingSupplement > 0 && (
-              <Card className="p-5 rounded-2xl overflow-hidden relative border-0 shadow-sm"
+              <Card className="p-5 rounded-3xl overflow-hidden relative border-0 ring-0 shadow-[0_2px_12px_rgba(45,49,66,0.05)]"
                 style={{ background: 'linear-gradient(135deg, #fff7ed, #ffedd5)' }}
               >
                 <div
@@ -288,8 +304,8 @@ function renderDashboard(stats: Stats, recentMerchants: RecentMerchant[], apiLog
             )}
 
             {/* Status Summary */}
-            <Card className="p-5 rounded-2xl border-gray-200/60 bg-white shadow-sm">
-              <p className="text-sm font-semibold text-gray-900 mb-3">狀態摘要</p>
+            <Card className="p-5 rounded-3xl border-0 ring-0 bg-white shadow-[0_2px_12px_rgba(45,49,66,0.05)]">
+              <p className="text-sm font-semibold text-[#2d3142] mb-3">狀態摘要</p>
               <div className="space-y-2.5">
                 {([
                   { label: '審核通過', count: stats.approved, status: 'APPROVED' as MerchantStatus },
