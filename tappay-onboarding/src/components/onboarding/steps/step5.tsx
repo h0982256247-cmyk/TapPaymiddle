@@ -12,6 +12,7 @@ import type { OnboardingFormData, PaymentMethod, UploadedFile } from '@/types/me
 import { PAYMENT_METHOD_LABELS, isUploadedFile } from '@/types/merchant'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { normalizeTapPayText } from '@/lib/schemas/onboarding'
 
 const APP_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://tap-paymiddle.vercel.app').replace(/\/$/, '')
 
@@ -242,118 +243,230 @@ function ShopPagePreviewModal({
 }
 
 // ── MCC 代碼分類 ──────────────────────────────
-const MCC_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
+// 來源：TapPay 平台商進件 API 1.7「承作商店類別清單」(2024-03-29)
+// online = 線上刷卡(ONLINE) 承作；offline = 實體刷卡(OFFLINE 企業/個人任一) 承作
+type MccOption = { value: string; label: string; online: boolean; offline: boolean }
+const MCC_GROUPS_ALL: { label: string; options: MccOption[] }[] = [
   {
-    label: '零售業',
+    label: "居民與商業服務",
     options: [
-      { value: '5999', label: '5999　綜合零售' },
-      { value: '5411', label: '5411　超市 / 食品雜貨' },
-      { value: '5912', label: '5912　藥局 / 藥妝店' },
-      { value: '5691', label: '5691　服飾綜合' },
-      { value: '5621', label: '5621　女裝服飾' },
-      { value: '5611', label: '5611　男裝服飾' },
-      { value: '5661', label: '5661　鞋類' },
-      { value: '5941', label: '5941　運動用品' },
-      { value: '5045', label: '5045　電腦及周邊設備' },
-      { value: '5065', label: '5065　電子零件 / 3C' },
-      { value: '5722', label: '5722　家電' },
-      { value: '5712', label: '5712　家具 / 家居用品' },
-      { value: '5251', label: '5251　五金 / 工具' },
-      { value: '5261', label: '5261　花卉 / 園藝' },
-      { value: '5977', label: '5977　化妝品 / 美容用品' },
-      { value: '5947', label: '5947　禮品 / 精品店' },
-      { value: '5511', label: '5511　汽車銷售' },
-      { value: '5533', label: '5533　汽車零件' },
-      { value: '5571', label: '5571　機車' },
-      { value: '5815', label: '5815　數位內容下載（書籍、音樂）' },
-      { value: '5816', label: '5816　遊戲點數 / 虛寶' },
-      { value: '5734', label: '5734　電腦軟體零售' },
+      { value: "0780", label: "0780　景歡美化及園藝服務", online: true, offline: false },
+      { value: "5542", label: "5542　自助加油站", online: true, offline: false },
+      { value: "5811", label: "5811　包辦伙食、宴會承包商", online: true, offline: false },
+      { value: "5965", label: "5965　目錄銷售", online: true, offline: false },
+      { value: "6300", label: "6300　保險繳款", online: true, offline: false },
+      { value: "7210", label: "7210　洗衣店", online: true, offline: false },
+      { value: "7211", label: "7211　洗熨服務(自助洗衣服務)", online: true, offline: false },
+      { value: "7221", label: "7221　攝影工作室", online: false, offline: true },
+      { value: "7299", label: "7299　未列入其他代碼的個人服務", online: true, offline: false },
+      { value: "7311", label: "7311　廣告服務", online: true, offline: false },
+      { value: "7333", label: "7333　商業攝影服務", online: true, offline: true },
+      { value: "7338", label: "7338　複印及繪圖服務", online: true, offline: false },
+      { value: "7395", label: "7395　照相洗印服務", online: true, offline: true },
+      { value: "7399", label: "7399　商業服務(其他)", online: true, offline: false },
+      { value: "7523", label: "7523　停車場", online: true, offline: true },
+      { value: "8912", label: "8912　裝修、裝潢、園藝", online: true, offline: true },
+      { value: "8931", label: "8931　會計、審計、財務服務", online: true, offline: false },
+      { value: "8999", label: "8999　未列入其他代碼的專業服務", online: true, offline: false },
     ],
   },
   {
-    label: '餐飲業',
+    label: "旅遊、運輸、物流",
     options: [
-      { value: '5812', label: '5812　餐廳 / 飲食店' },
-      { value: '5814', label: '5814　速食店' },
-      { value: '5813', label: '5813　酒吧 / 夜店' },
-      { value: '5921', label: '5921　酒類零售' },
+      { value: "4121", label: "4121　計程車,加長禮車", online: true, offline: true },
+      { value: "4214", label: "4214　貨物搬運和託運", online: true, offline: false },
+      { value: "4215", label: "4215　快遞服務", online: true, offline: false },
+      { value: "4225", label: "4225　公共倉儲服務", online: true, offline: false },
+      { value: "4722", label: "4722　旅行社", online: true, offline: false },
+      { value: "4789", label: "4789　交通運輸", online: true, offline: false },
     ],
   },
   {
-    label: '旅遊 / 住宿',
+    label: "家用電器及電子產品專門零售",
     options: [
-      { value: '7011', label: '7011　飯店 / 旅館' },
-      { value: '7012', label: '7012　民宿' },
-      { value: '4511', label: '4511　航空公司' },
-      { value: '4722', label: '4722　旅行社' },
-      { value: '7512', label: '7512　租車服務' },
-      { value: '4131', label: '4131　客運巴士' },
+      { value: "4812", label: "4812　電信設備", online: true, offline: true },
+      { value: "5722", label: "5722　家用電器商店", online: true, offline: true },
+      { value: "5732", label: "5732　家用電器商店", online: true, offline: true },
+      { value: "5734", label: "5734　電腦軟體／硬體商店、軟體下載", online: true, offline: true },
     ],
   },
   {
-    label: '娛樂 / 休閒',
+    label: "資訊與電腦服務",
     options: [
-      { value: '7832', label: '7832　電影院' },
-      { value: '7993', label: '7993　遊樂場 / 電子遊戲' },
-      { value: '7999', label: '7999　休閒娛樂綜合' },
-      { value: '7922', label: '7922　表演票券' },
-      { value: '7941', label: '7941　職業運動' },
+      { value: "4816", label: "4816　電腦網絡／信息服務", online: true, offline: false },
+      { value: "7372", label: "7372　電腦軟體開發、系統整合、資料處理服務", online: true, offline: false },
     ],
   },
   {
-    label: '醫療 / 健康 / 美容',
+    label: "批發商家",
     options: [
-      { value: '8099', label: '8099　醫療服務綜合' },
-      { value: '8011', label: '8011　醫師診所' },
-      { value: '8021', label: '8021　牙科診所' },
-      { value: '7298', label: '7298　健康 / 美容 SPA' },
-      { value: '7230', label: '7230　美容院 / 理髮廳' },
-      { value: '5047', label: '5047　醫療器材' },
+      { value: "5021", label: "5021　辦公及商務家具(批發商)", online: true, offline: false },
+      { value: "5039", label: "5039　未列入其他代碼的建材批發", online: true, offline: false },
+      { value: "5044", label: "5044　辦公、影印及攝影器材(批發商)", online: true, offline: true },
+      { value: "5045", label: "5045　電腦、電腦週邊設備", online: true, offline: false },
+      { value: "5065", label: "5065　電器零件和設備(批發商)", online: true, offline: false },
+      { value: "5111", label: "5111　文具、辦公用品(批發商)", online: true, offline: false },
+      { value: "5131", label: "5131　布料、縫紉用品(批發商)", online: true, offline: false },
+      { value: "5137", label: "5137　男女及兒童服裝(批發商)", online: true, offline: true },
+      { value: "5139", label: "5139　鞋類(批發商)", online: true, offline: false },
+      { value: "5192", label: "5192　書、期刊和報紙(批發商)", online: true, offline: false },
+      { value: "5193", label: "5193　花木栽種用品(批發商)", online: true, offline: false },
+      { value: "5198", label: "5198　油漆、清漆用品(批發商)", online: true, offline: false },
+      { value: "5998", label: "5998　其他批發商", online: true, offline: false },
     ],
   },
   {
-    label: '教育',
+    label: "零售業(綜合零售)",
     options: [
-      { value: '8299', label: '8299　補習班 / 教育服務' },
-      { value: '8241', label: '8241　函授課程 / 線上課程' },
-      { value: '8220', label: '8220　大學 / 高等教育' },
-      { value: '8211', label: '8211　中小學' },
+      { value: "5094", label: "5094　貴重珠寶、首飾、鐘錶零售", online: true, offline: true },
+      { value: "5300", label: "5300　會員制批量零售店", online: true, offline: false },
+      { value: "5309", label: "5309　大批發會員店", online: true, offline: false },
+      { value: "5311", label: "5311　大批發會員店(百貨公司)", online: true, offline: true },
+      { value: "5331", label: "5331　雜貨店", online: true, offline: true },
+      { value: "5399", label: "5399　一般用品(其他)", online: true, offline: true },
+      { value: "5411", label: "5411　超市,量販店", online: true, offline: true },
+      { value: "5422", label: "5422　冷藏、儲藏肉類供應商", online: true, offline: true },
+      { value: "5441", label: "5441　糖果店、堅果店", online: true, offline: true },
+      { value: "5451", label: "5451　乳製品店、冷飲店", online: true, offline: true },
+      { value: "5462", label: "5462　糕品店", online: true, offline: true },
+      { value: "5499", label: "5499　便利商店", online: true, offline: true },
+      { value: "5611", label: "5611　男子和男童服裝及附件商店", online: true, offline: true },
+      { value: "5621", label: "5621　婦女時裝商店", online: true, offline: true },
+      { value: "5631", label: "5631　飾品商店", online: true, offline: true },
+      { value: "5641", label: "5641　兒童嬰兒用品商店", online: true, offline: true },
+      { value: "5651", label: "5651　家庭服裝商店", online: true, offline: false },
+      { value: "5655", label: "5655　運動服飾商店", online: true, offline: false },
+      { value: "5661", label: "5661　鞋店", online: true, offline: true },
+      { value: "5681", label: "5681　皮貨商店", online: true, offline: true },
+      { value: "5691", label: "5691　服飾店", online: true, offline: true },
+      { value: "5697", label: "5697　裁縫、修補、改衣店", online: true, offline: true },
+      { value: "5699", label: "5699　各種服飾(配件)", online: true, offline: false },
+      { value: "5921", label: "5921　啤酒屋", online: true, offline: true },
+      { value: "5944", label: "5944　銀器商店", online: true, offline: true },
+      { value: "5947", label: "5947　禮品、紀念品商店", online: true, offline: true },
+      { value: "5948", label: "5948　箱包、皮具店", online: true, offline: true },
+      { value: "5949", label: "5949　紡織品及針織品零售", online: true, offline: true },
+      { value: "5950", label: "5950　玻璃器皿和水晶飾品店", online: true, offline: true },
+      { value: "5970", label: "5970　工藝美術商店", online: true, offline: true },
+      { value: "5971", label: "5971　藝術商和畫廊", online: true, offline: true },
+      { value: "5972", label: "5972　郵票和錢幣店", online: false, offline: true },
+      { value: "5973", label: "5973　宗教用品", online: true, offline: true },
+      { value: "5975", label: "5975　助聽器-銷售、服務和耗材", online: false, offline: true },
+      { value: "5977", label: "5977　化妝品店", online: true, offline: true },
+      { value: "5995", label: "5995　寵物店", online: true, offline: true },
+      { value: "5999", label: "5999　其他專門零售店", online: true, offline: false },
+      { value: "7278", label: "7278　購物服務", online: true, offline: false },
+      { value: "8043", label: "8043　光學儀器商和眼鏡商", online: true, offline: true },
     ],
   },
   {
-    label: '服務業 / 專業服務',
+    label: "五金、家具及室內裝修材料專門零售",
     options: [
-      { value: '7389', label: '7389　商業服務綜合' },
-      { value: '7372', label: '7372　軟體服務 / SaaS' },
-      { value: '7371', label: '7371　程式設計 / IT 服務' },
-      { value: '8742', label: '8742　管理顧問' },
-      { value: '8911', label: '8911　建築師 / 工程師' },
-      { value: '7349', label: '7349　清潔 / 維護服務' },
-      { value: '8999', label: '8999　其他專業服務' },
+      { value: "5200", label: "5200　家庭用品(家用、家飾、電器、DIY)", online: false, offline: true },
+      { value: "5211", label: "5211　木材和建材賣場", online: true, offline: true },
+      { value: "5231", label: "5231　玻璃、油漆、壁纸商店", online: true, offline: true },
+      { value: "5251", label: "5251　五金商店", online: true, offline: true },
+      { value: "5261", label: "5261　草坪、花園品商店", online: true, offline: true },
+      { value: "5310", label: "5310　折扣商店", online: true, offline: false },
+      { value: "5712", label: "5712　家具、家用設備零售商", online: true, offline: true },
+      { value: "5713", label: "5713　地板鋪設專賣店(地毯、地磚、石材、木地板)", online: false, offline: true },
+      { value: "5714", label: "5714　幃帳、窗簾、室內裝潢商店", online: true, offline: true },
+      { value: "5718", label: "5718　壁爐及配件商店", online: true, offline: false },
+      { value: "5719", label: "5719　各種家庭裝飾專營店", online: true, offline: false },
+      { value: "5931", label: "5931　舊商品店、二手商品店", online: true, offline: true },
+      { value: "5992", label: "5992　花店", online: true, offline: true },
     ],
   },
   {
-    label: '交通 / 汽車服務',
+    label: "汽車、摩托車、燃料及零配件專門零售",
     options: [
-      { value: '7521', label: '7521　停車場' },
-      { value: '7538', label: '7538　汽車修理廠' },
-      { value: '7542', label: '7542　洗車' },
+      { value: "5532", label: "5532　汽車輪胎及相關零件銷售", online: false, offline: true },
+      { value: "5533", label: "5533　汽車零件配件商店", online: true, offline: true },
+      { value: "5541", label: "5541　加油站", online: true, offline: true },
+      { value: "7531", label: "7531　修車場", online: true, offline: false },
+      { value: "7535", label: "7535　汽車噴漆", online: true, offline: false },
     ],
   },
   {
-    label: '電信 / 數位服務',
+    label: "文化、體育用品及器材專門零售",
     options: [
-      { value: '4814', label: '4814　電信服務' },
-      { value: '4816', label: '4816　電腦網路服務' },
-      { value: '4899', label: '4899　有線電視 / 串流' },
+      { value: "5733", label: "5733　音樂商店", online: true, offline: true },
+      { value: "5735", label: "5735　音像製品商店", online: true, offline: true },
+      { value: "5940", label: "5940　自行車商店", online: true, offline: true },
+      { value: "5941", label: "5941　運動用品店", online: true, offline: true },
+      { value: "5942", label: "5942　書店", online: true, offline: true },
+      { value: "5943", label: "5943　文具店、辦公室、學校用品店", online: true, offline: true },
+      { value: "5945", label: "5945　玩具、遊戲店", online: true, offline: true },
+      { value: "5946", label: "5946　照相器材店", online: true, offline: true },
+      { value: "5994", label: "5994　報亭、報攤", online: true, offline: false },
     ],
   },
   {
-    label: '其他',
+    label: "住宿、餐飲、休閒娛樂",
     options: [
-      { value: '8398', label: '8398　慈善機構 / 非營利' },
-      { value: '6300', label: '6300　保險' },
-      { value: '9399', label: '9399　政府 / 公共服務' },
+      { value: "5812", label: "5812　餐廳", online: true, offline: true },
+      { value: "5813", label: "5813　飲酒場所、酒吧、夜總會", online: true, offline: false },
+      { value: "5814", label: "5814　連鎖餐廳", online: true, offline: true },
+      { value: "7011", label: "7011　住宿服務", online: true, offline: false },
+      { value: "7032", label: "7032　運動和娛樂露營地", online: true, offline: false },
+      { value: "7033", label: "7033　活動房車及露營場所", online: true, offline: false },
+      { value: "7829", label: "7829　電影和錄像創作發行", online: true, offline: false },
+      { value: "7832", label: "7832　電影院", online: true, offline: false },
+      { value: "7941", label: "7941　體育場館、體育俱樂部", online: true, offline: false },
+      { value: "7997", label: "7997　健身、各種俱樂部", online: true, offline: false },
+      { value: "7999", label: "7999　各種娛樂設備", online: true, offline: false },
+    ],
+  },
+  {
+    label: "美容、美髮、SPA",
+    options: [
+      { value: "7230", label: "7230　美髮", online: true, offline: true },
+      { value: "7297", label: "7297　按摩服務", online: false, offline: true },
+      { value: "7298", label: "7298　美容、ＳＰＡ", online: true, offline: true },
+    ],
+  },
+  {
+    label: "租賃服務",
+    options: [
+      { value: "7394", label: "7394　設備、工具、家具和電器出租", online: true, offline: false },
+      { value: "7512", label: "7512　汽車出租", online: true, offline: false },
+    ],
+  },
+  {
+    label: "維修及其他專業服務",
+    options: [
+      { value: "7538", label: "7538　汽車服務", online: true, offline: true },
+      { value: "7542", label: "7542　洗車", online: true, offline: true },
+      { value: "7622", label: "7622　電器維修", online: true, offline: true },
+      { value: "7623", label: "7623　空調及冷藏設備維修店", online: true, offline: false },
+      { value: "7629", label: "7629　家電維修店", online: true, offline: false },
+      { value: "7699", label: "7699　各類維修店", online: true, offline: false },
+    ],
+  },
+  {
+    label: "醫療、衛生",
+    options: [
+      { value: "8011", label: "8011　醫療", online: true, offline: false },
+      { value: "8041", label: "8041　按摩醫生、盲人按摩", online: true, offline: false },
+      { value: "8042", label: "8042　眼光配鏡師、眼科醫生", online: true, offline: false },
+      { value: "8062", label: "8062　醫院", online: true, offline: false },
+    ],
+  },
+  {
+    label: "教育",
+    options: [
+      { value: "8220", label: "8220　大專學校", online: true, offline: false },
+      { value: "8241", label: "8241　函授學校", online: true, offline: false },
+      { value: "8299", label: "8299　學校服務", online: true, offline: false },
+    ],
+  },
+  {
+    label: "政府、社福、宗教團體",
+    options: [
+      { value: "8398", label: "8398　社會服務機構", online: true, offline: true },
+      { value: "8651", label: "8651　政治機構", online: true, offline: false },
+      { value: "8661", label: "8661　宗教機構", online: true, offline: true },
+      { value: "9399", label: "9399　政府服務", online: true, offline: false },
     ],
   },
 ]
@@ -365,12 +478,22 @@ const selectClass =
 function MccSelect({
   fieldName,
   error,
+  channel,
 }: {
   fieldName: 'online_credit_card_info.mcc_online' | 'offline_credit_card_info.mcc_offline'
   error?: boolean
+  channel: 'online' | 'offline'
 }) {
   const { register, setValue, watch } = useFormContext<OnboardingFormData>()
   const currentValue = watch(fieldName)
+
+  // 依通路（線上 / 實體刷卡）只顯示 TapPay 承作的 MCC，避免進件被退（Invalid Data Element）
+  const MCC_GROUPS = MCC_GROUPS_ALL
+    .map((g) => ({
+      label: g.label,
+      options: g.options.filter((o) => (channel === 'online' ? o.online : o.offline)),
+    }))
+    .filter((g) => g.options.length > 0)
 
   // 從目前值反推初始分類
   const initCategory = MCC_GROUPS.find((g) =>
@@ -578,6 +701,7 @@ export function Step5() {
               <MccSelect
                 fieldName="online_credit_card_info.mcc_online"
                 error={!!onlineErrors.mcc_online}
+                channel="online"
               />
               {onlineErrors.mcc_online && <p className="text-xs text-red-500">{onlineErrors.mcc_online.message}</p>}
             </div>
@@ -818,7 +942,19 @@ export function Step5() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">商品類別描述 <span className="text-red-500">*</span></Label>
-              <Input placeholder="線上販售各類商品及服務" className="h-10 rounded-xl bg-white" {...register('online_credit_card_info.shop_description_online')} />
+              <Input
+                placeholder="線上販售各類商品及服務"
+                className="h-10 rounded-xl bg-white"
+                maxLength={50}
+                {...register('online_credit_card_info.shop_description_online')}
+                onBlur={(e) => {
+                  const v = normalizeTapPayText(e.target.value)
+                  if (v !== e.target.value) {
+                    setValue('online_credit_card_info.shop_description_online', v, { shouldValidate: true, shouldTouch: true })
+                  }
+                }}
+              />
+              <p className="text-[11px] text-gray-400">50 字以內，請使用半形標點（, - _ .），全形符號會自動轉換</p>
               {onlineErrors.shop_description_online && <p className="text-xs text-red-500">{onlineErrors.shop_description_online.message}</p>}
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -857,6 +993,7 @@ export function Step5() {
               <MccSelect
                 fieldName="offline_credit_card_info.mcc_offline"
                 error={!!offlineErrors.mcc_offline}
+                channel="offline"
               />
               {offlineErrors.mcc_offline && <p className="text-xs text-red-500">{offlineErrors.mcc_offline.message}</p>}
             </div>
@@ -873,7 +1010,19 @@ export function Step5() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-700">商品類別描述 <span className="text-red-500">*</span></Label>
-              <Input placeholder="販售各類實體商品" className="h-10 rounded-xl bg-white" {...register('offline_credit_card_info.shop_description_offline')} />
+              <Input
+                placeholder="販售各類實體商品"
+                className="h-10 rounded-xl bg-white"
+                maxLength={50}
+                {...register('offline_credit_card_info.shop_description_offline')}
+                onBlur={(e) => {
+                  const v = normalizeTapPayText(e.target.value)
+                  if (v !== e.target.value) {
+                    setValue('offline_credit_card_info.shop_description_offline', v, { shouldValidate: true, shouldTouch: true })
+                  }
+                }}
+              />
+              <p className="text-[11px] text-gray-400">50 字以內，請使用半形標點（, - _ .），全形符號會自動轉換</p>
               {offlineErrors.shop_description_offline && <p className="text-xs text-red-500">{offlineErrors.shop_description_offline.message}</p>}
             </div>
           </div>

@@ -7,6 +7,35 @@ const cityDistrictField = z
   .refine((val) => parseCityDistrict(val).district !== '', { message: '請選擇區' })
 
 // ================================================
+// TapPay 文字欄位防呆
+// 商品/營業項目描述：50 字以內，只接受中英文、數字、空格與「半形」標點 , - _ .
+// （TapPay 會退「全形」符號，例如全形逗號『，』）
+// ================================================
+export const TAPPAY_TEXT_REGEX = /^[一-鿿㐀-䶿A-Za-z0-9 ,._-]+$/
+
+// 將常見全形符號轉為對應半形（送出前自動修正；其餘不合規字元由 TAPPAY_TEXT_REGEX 攔截）
+export function normalizeTapPayText(input: string): string {
+  if (!input) return input
+  return input
+    // 全形 ASCII（U+FF01–U+FF5E）→ 半形
+    .replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    // 全形空白 → 半形空白
+    .replace(/　/g, ' ')
+    // 中文頓號／句號 → 半形 , .
+    .replace(/[、，]/g, ',')
+    .replace(/。/g, '.')
+}
+
+const tappayDescription = z
+  .string()
+  .min(1, '必填')
+  .max(50, '不可超過 50 字')
+  .regex(
+    TAPPAY_TEXT_REGEX,
+    '只能輸入中英文、數字、空格與半形標點 , - _ .（請勿使用全形符號）'
+  )
+
+// ================================================
 // Step 1: 帳號 + 商家類型
 // ================================================
 
@@ -144,7 +173,7 @@ export const step4Schema = z.object({
 export const onlineCreditCardSchema = z.object({
   mcc_online: z.string().min(1, '必填').max(4),
   online_shop_url: z.string().optional(),
-  shop_description_online: z.string().min(1, '必填'),
+  shop_description_online: tappayDescription,
   is_subscription_service: z.boolean().default(false),
   use_shop_page: z.boolean().default(false),
 }).superRefine((data, ctx) => {
@@ -176,7 +205,7 @@ export const shopPageInfoSchema = z.object({
 export const offlineCreditCardSchema = z.object({
   mcc_offline: z.string().min(1, '必填').max(4),
   device_quantity: z.number().int().positive('數量必須大於 0'),
-  shop_description_offline: z.string().min(1, '必填'),
+  shop_description_offline: tappayDescription,
 })
 
 export const cvscomSchema = z.object({
