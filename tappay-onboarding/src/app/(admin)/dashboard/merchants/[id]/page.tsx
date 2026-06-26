@@ -9,6 +9,7 @@ import Link from 'next/link'
 import type { Merchant, MerchantBasicInfo, MerchantPaymentMethod, MerchantDocument, MerchantApiLog, MerchantNotifyLog } from '@/types/merchant'
 import { CopyField } from '@/components/shared/copy-field'
 import { ShopPageEditor } from '@/components/shared/shop-page-editor'
+import { QueryStatusButton } from '@/components/dashboard/query-status-button'
 import { getAuthContext } from '@/lib/auth-context'
 
 // Detail page is always fresh — merchant status/data can change via notify
@@ -57,7 +58,7 @@ export default async function MerchantDetailPage({
 
   return (
     <div>
-      <Topbar title="商戶詳情" />
+      <Topbar title="商戶詳情" action={<QueryStatusButton merchantId={id} />} />
 
       <div className="p-6 space-y-4 max-w-5xl">
         {/* Back + Header */}
@@ -113,8 +114,8 @@ export default async function MerchantDetailPage({
 
           {merchant.tappay_opinion && (
             <div className="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-100">
-              <p className="text-xs font-medium text-amber-800 mb-1">TapPay 審核意見</p>
-              <p className="text-sm text-amber-700">{merchant.tappay_opinion}</p>
+              <p className="text-xs font-medium text-amber-800 mb-1">TapPay 審核意見 / 補件原因</p>
+              <p className="text-sm text-amber-700 whitespace-pre-line leading-relaxed">{merchant.tappay_opinion}</p>
             </div>
           )}
         </Card>
