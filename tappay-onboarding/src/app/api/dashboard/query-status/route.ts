@@ -33,6 +33,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '找不到此商戶' }, { status: 404 })
     }
 
+    if (!merchant.platform_id) {
+      return NextResponse.json({ error: '此商戶尚未綁定平台' }, { status: 400 })
+    }
+
     const { data: platform } = await admin
       .from('platforms')
       .select('id, user_id, tappay_platform_key')
